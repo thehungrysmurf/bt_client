@@ -1,0 +1,66 @@
+1. BT client in python
+
+    A. must have:
+
+    - connect to tracker
+    - get list of peers (seeders) from tracker
+
+    - download a file
+    - connect to tracker
+    - get list of peers (seeders) who have the file
+    - connect to peers
+    - get path of piece to download (from metainfo file ?)
+    - save the pieces to disk
+    - verify the integrity of the file (against info from .torrent file) - checksum?
+
+    testing:
+    - get code for a basic tracker for test
+
+    B. nice to have:
+    - announce yourself as a seeder
+    - serve a file
+    - run a tracker
+    - run a web server (?)
+    - encode file & generate the .torrent metainfo file including tracker URL
+    - put metainfo file on web server
+    ?
+
+
+
+2. data visualization in browser
+
+    - look at D3 and see if I can use it
+    - maybe: visualize data about seeders / files that comes from the tracker (big data)
+
+
+TO DO:
+    - use "seek" in python to write to specific position in file (write to binary file as opposed to text file) - google "random access binary file"
+    - learn how a torrent file is created, what each field means
+    - test that each field is correct (analyze the file)
+
+
+TO DO THIS WEEK:
+    - figure out what .torrent file is
+    - write functions that read the file and verify it against info from .torrent (without network stuff)
+
+
+KEY WORDS:
+
+    *tracker
+    *seeder
+    *seed
+    *leech
+    *swarm
+    *choking
+    *unchocking
+    *interested
+    *handshake
+    *hashing SHA1
+    *metainfo
+    *torrent
+    *TCP/UDP
+    *chunk
+    *HTTP GET request
+    *announce
+    *key
+    *socket

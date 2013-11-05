@@ -1,0 +1,6 @@
+
+- Does each chunk have a metainfo file, or just the complete file does?
+- Are .torrent files metafiles or files that also include the actual data?
+- How does a client make itself known as a seeder to the tracker? (HTTP GET request when it asks for a file, but how about when it *has* a file?)
+- Am I using TCP or UDP or both for the transfer?
+- How do you know where to download the file from? (does the tracker give you a path / address, does that info come from the .torrent file? )

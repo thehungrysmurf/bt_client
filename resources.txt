@@ -1,0 +1,9 @@
+
+http://bittorrent.org/beps/bep_0003.html
+
+http://www.slideshare.net/gkmv/analysis-of-thep2pbittorrentprotocol
+
+Zach:
+http://zachdex.tumblr.com/post/36792592990/bitttorrent-client-lessons
+https://github.com/zdexter/py-bittorrent
+
