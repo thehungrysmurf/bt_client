@@ -40,8 +40,9 @@ TO DO:
 
 
 TO DO THIS WEEK:
-    - figure out what .torrent file is
+    - figure out how .torrent file is put together, what the fields mean
     - write functions that read the file and verify it against info from .torrent (without network stuff)
+    - play with random access binary file from here: http://openbookproject.net/thinkcs/python/english3e/files.html
 
 
 KEY WORDS:
