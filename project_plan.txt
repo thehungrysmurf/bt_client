@@ -26,7 +26,6 @@
     ?
 
 
-
 2. data visualization in browser
 
     - look at D3 and see if I can use it
