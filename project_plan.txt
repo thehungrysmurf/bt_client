@@ -64,3 +64,8 @@ KEY WORDS:
     *announce
     *key
     *socket
+    *URL encode
+
+    "requests" library in python for http requests
+    charles - tool to visualize web requests
+
