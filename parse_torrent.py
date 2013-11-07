@@ -3,6 +3,8 @@ import hashlib
 import socket
 import requests
 
+peer_id = '-SG00011234567890123'
+
 def get_torrent_info(torrent_file):
     t_file = open(torrent_file).read()
     parsed = bencode.bdecode(t_file)
@@ -32,7 +34,7 @@ def get_infohash(torrent_file):
     infohash = hashlib.sha1(bencode.bencode(decoded_torrent['info']))
     return infohash
 
-def get_peers_from_tracker(torrent_file):
+def send_request_to_tracker(torrent_file):
     decoded_torrent = bencode.bdecode(open(torrent_file).read())
     payload = {}
     total_length = 0
@@ -52,7 +54,25 @@ def get_peers_from_tracker(torrent_file):
     payload['ip'] = '10.1.10.25'
     #payload['ip'] = socket.gethostbyname(socket.gethostname())
     request = requests.get(decoded_torrent['announce'], params = payload)
-    return "Request from tracker: ", bencode.bdecode(request.text)
+    return bencode.bdecode(request.text)
+
+#This following function is not really necessary, it's just for me to clarify what kind of data I'm getting from the tracker. The function above returns a dictionary containing a list of peers that's easy to work with - "peers" is a list which contains dictionaries with peer info (ip, id and port), one for each peer.
+
+def get_peer_info(torrent_file):
+    peer_dict = send_request_to_tracker(torrent_file)
+    peer_info = []
+    list_of_peers = peer_dict['peers']
+    for peer in list_of_peers:
+        peer_info.append((peer['ip'], peer['id'], peer['port']))
+    return peer_info
+
+def send_request_to_peer(torrent_file):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    host = send_request_to_tracker(torrent_file)['peers'][0]['ip']
+    port = send_request_to_tracker(torrent_file)['peers'][0]['port']
+    s.connect((host, port))
+    #handshake goes here
+    s.send(handshake)
 
 def main():
     torrent_file = "/home/user/silvia/my_torrents_as_tracker/File_2_try_2.torrent"
@@ -62,6 +82,7 @@ def main():
         print field, " : ", value
 
     print "Infohash: ", get_infohash(torrent_file).hexdigest()
-    print get_peers_from_tracker(torrent_file)
+    print "Reply from tracker: ", send_request_to_tracker(torrent_file)
+    print "Peer info: ", get_peer_info(torrent_file)
 
 main()

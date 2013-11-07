@@ -33,6 +33,8 @@ port used for incoming connections: 51413
 
 Tracker URL: http://localhost:9000/announce
 
+Possible trouble when I'm creating the string for the handshake (some numbers are numbers, some numbers are string ASCII codes) - use "pack" module for this and ask Christian if stuck
+
 
 
 

@@ -11,6 +11,7 @@ https://github.com/zdexter/py-bittorrent
 
 http://www.kristenwidman.com/blog/how-to-write-a-bittorrent-client-part-1/
 http://www.kristenwidman.com/blog/how-to-write-a-bittorrent-client-part-2/
+https://github.com/kristenwidman/Bittorrenter
 
 http://i-tools.org/torrent/exec#general
 
@@ -19,4 +20,6 @@ http://erdgeist.org/arts/software/opentracker/
 http://jsonviewer.stack.hu/
 
 http://www.morehawes.co.uk/the-bittorrent-protocol
+
+http://lifehacker.com/5952148/how-to-create-a-super-private-bittorrent-community-for-you-and-your-friends
 
