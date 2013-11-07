@@ -17,3 +17,6 @@ http://i-tools.org/torrent/exec#general
 http://erdgeist.org/arts/software/opentracker/
 
 http://jsonviewer.stack.hu/
+
+http://www.morehawes.co.uk/the-bittorrent-protocol
+

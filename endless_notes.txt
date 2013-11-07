@@ -1,0 +1,39 @@
+TO REMEMBER:
+
+*** infohash is the SHA1 hash of the info dictionary
+from stackoverflow:
+To get the infohash, bdecode the metafile, then it's simply "sha1(bencode(metadata['info']))" (i.e. bencode only the info dict again, then hash that).
+
+*** netstat [-an] | grep <port_no>
+shows listening interfaces filtered by port #
+
+*** lsof | grep <port_no>
+list of open files
+
+*** ssh -X <hostname>
+>hostname example: user@chromebox02
+-X enables window display on the remote host
+global variable is $DISPLAY
+>echo $DISPLAY
+>logout
+to logout from ssh
+
+*** to do: create a class or something that takes a torrent file and sends http request to the tracker for the peer list (group functions to this end)
+
+
+TO FORGET:
+***Qbittorrent
+#Tracker is listening for HTTP requests on this port
+embedded tracker running on port 9000
+
+port used for incoming connections: 6881
+
+***Transmission (client):
+port used for incoming connections: 51413
+
+Tracker URL: http://localhost:9000/announce
+
+
+
+
+
