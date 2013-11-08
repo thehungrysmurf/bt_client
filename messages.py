@@ -1,18 +1,18 @@
 import bencode
 import parse_torrent
-from struct import pack
+from struct import *
 
 def handshake(torrent_file):
-    prefix = '19'
-    pstr = "BitTorrent protocol"
-    info_hash = parse_torrent.get_infohash(torrent_file)
-    peer_id = parse_torrent.peer_id
-    return pack(prefix, pstr, '8s', info_hash, peer_id)
+    pstrlen = pack('B', 19)
+    pstr = 'BitTorrent protocol'
+    reserved = pack('!8x')
+    partial_handshake = pstrlen + pstr + reserved
+    return partial_handshake
 
-def main():
-    torrent_file = "/home/user/silvia/my_torrents_as_tracker/File_2_try_2.torrent"
+'''def main():
+    torrent_file = "/home/user/silvia/my_torrents_as_tracker/file_1.torrent"
     h = handshake(torrent_file)
-    print h
+    print h, len(h)
 
-main()
+main()'''
 

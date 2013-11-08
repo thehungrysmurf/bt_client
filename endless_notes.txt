@@ -35,7 +35,17 @@ Tracker URL: http://localhost:9000/announce
 
 Possible trouble when I'm creating the string for the handshake (some numbers are numbers, some numbers are string ASCII codes) - use "pack" module for this and ask Christian if stuck
 
+GET /announce?uploaded=0&ip=10.1.10.25&info_hash=5f2bd91d8AAAAAA99824a12ff6f5cddb41e22884&event=started&downloaded=0&peer_id=-SG00011234567890123&port=1060&left=7896542 HTTP/1.0
+
+NEW MIND BLOWING DISCOVERY:
+
+PEERS - all users who are connected to the tracker AND either have a part of the file, or have inquired about a file (meaning ~ they are about to connect to a peer and get the file)
+
+SEEDERS - users who have the whole file
+
+Ex@@H
 
 
 
-
+X/8\(
+rh5rh5BitTorrent protoco0f859d4872033b9b99c-SG0001123456789012

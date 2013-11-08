@@ -1,0 +1,91 @@
+UNDERSTANDING THE SETUP:
+
+    1. Start QBittorrent as tracker - no torrent files added. Tracker is listening on port 9000
+    2. Create torrent with wizard for file 1 and start seeding right away (torrent file is saved in the "my_torrents_as_tracker" folder)
+    3. Open Transmission (this is a BT client) and open the torrent file with it
+
+    4. Watch traffic on port 9000 on WS
+
+Transmission opens the "file_1" torrent file and makes HTTP GET request to tracker:
+
+GET /announce?info_hash=%0f%85%9dHr%03%3b%9b%99%c0%c4%bc%2b%22%d9%0f%c3%85%17%60&peer_id=-TR2510-gu6z89jkpxd2&port=51413&uploaded=0&downloaded=0&left=1718128&numwant=80&key=5f430fb0&compact=1&supportcrypto=1&event=started HTTP/1.1
+User-Agent: Transmission/2.51
+Host: chromebox05.int.hackbrightacademy.com:9000
+Accept: */*
+Accept-Encoding: gzip;q=1.0, deflate, identity
+
+HTTP RESPONSE fom tracker:
+
+HTTP/1.1 200 OK
+
+d8:intervali1800e5:peersld2:id20:-qB2970-QUVDu5V1VmZ12:ip10:10.1.10.254:porti6881eed2:id20:-TR2510-gu6z89jkpxd22:ip10:10.1.10.254:porti51413eeee
+
+NOTE: peers are: QBT (tracker) and Transmission (who inquired about the file). Deluge is also connected at this point but it hasn't made any requests for the file yet.
+
+    5. Run MY client and make http request to tracker
+
+GET /announce?uploaded=0&ip=10.1.10.25&info_hash=%3Csha1+HASH+object+%40+0x24011c0%3E&event=started&downloaded=0&peer_id=-SG00011234567890123&port=1050&left=1718128 HTTP/1.1
+Host: chromebox05.int.hackbrightacademy.com:9000
+Accept-Encoding: gzip, deflate, compress
+Accept: */*
+User-Agent: python-requests/2.0.1 CPython/2.7.3 Linux/3.4.0
+
+PS: Payload of this request is:  {'uploaded': 0, 'ip': '10.1.10.25', 'info_hash': <sha1 HASH object @ 0x24011c0>, 'event': 'started', 'downloaded': 0, 'peer_id': '-SG00011234567890123', 'port': 1050, 'left': 1718128}
+Passed infohash as HASH object
+
+    6. Get response from tracker
+
+HTTP/1.1 200 OK
+
+d8:intervali1800e5:peersld2:id20:-SG000112345678901232:ip10:10.1.10.254:porti1050eeee
+
+Note: Only myself! (even though Transmission also has the file) -> This means the hash is not correct. Try next step.
+
+    7. Try to pass info_hash as hexdigest(), http request to tracker again and record response
+
+GET /announce?uploaded=0&ip=10.1.10.25&info_hash=0f859d4872033b9b99c0c4bc2b22d90fc3851760&event=started&downloaded=0&peer_id=-SG00011234567890123&port=1050&left=1718128 HTTP/1.1
+Host: chromebox05.int.hackbrightacademy.com:9000
+Accept-Encoding: gzip, deflate, compress
+Accept: */*
+User-Agent: python-requests/2.0.1 CPython/2.7.3 Linux/3.4.0
+
+HTTP/1.1 200 OK
+
+d8:intervali1800e5:peersld2:id20:-SG000112345678901232:ip10:10.1.10.254:porti1050eeee
+
+PS: Payload of this request is:  {'uploaded': 0, 'ip': '10.1.10.25', 'info_hash': '0f859d4872033b9b99c0c4bc2b22d90fc3851760', 'event': 'started', 'downloaded': 0, 'peer_id': '-SG00011234567890123', 'port': 1050, 'left': 1718128}
+
+Note: Only myself again. Info_hash is still not correct. Try next step
+
+    8. Pass info_hash as exactly what I saw in the HTTP exchange between Transmission and tracker
+%0f%85%9dHr%03%3b%9b%99%c0%c4%bc%2b%22%d9%0f%c3%85%17%60
+
+GET /announce?uploaded=0&ip=10.1.10.25&info_hash=%250f%2585%259dHr%2503%253b%259b%2599%25c0%25c4%25bc%252b%2522%25d9%250f%25c3%2585%2517%2560&event=started&downloaded=0&peer_id=-SG00011234567890123&port=1050&left=1718128 HTTP/1.1
+Host: chromebox05.int.hackbrightacademy.com:9000
+Accept-Encoding: gzip, deflate, compress
+Accept: */*
+User-Agent: python-requests/2.0.1 CPython/2.7.3 Linux/3.4.0
+
+HTTP/1.1 200 OK
+
+d8:intervali1800e5:peersld2:id20:-SG000112345678901232:ip10:10.1.10.254:porti1050eeee
+
+PS: Payload of this request is:  {'uploaded': 0, 'ip': '10.1.10.25', 'info_hash': '%0f%85%9dHr%03%3b%9b%99%c0%c4%bc%2b%22%d9%0f%c3%85%17%60', 'event': 'started', 'downloaded': 0, 'peer_id': '-SG00011234567890123', 'port': 1050, 'left': 1718128}
+
+    9. Pass info_hash as .digest() of sha object
+
+    THIS WORKED!!!!!!!!!!!!!!!!
+
+    GET /announce?uploaded=0&ip=10.1.10.25&info_hash=%0F%85%9DHr%03%3B%9B%99%C0%C4%BC%2B%22%D9%0F%C3%85%17%60&event=started&downloaded=0&peer_id=-SG00011234567890123&port=1050&left=1718128 HTTP/1.1
+Host: chromebox05.int.hackbrightacademy.com:9000
+Accept-Encoding: gzip, deflate, compress
+Accept: */*
+User-Agent: python-requests/2.0.1 CPython/2.7.3 Linux/3.4.0
+
+HTTP/1.1 200 OK
+
+d8:intervali1800e5:peersld2:id20:-qB2970-QUVDu5V1VmZ12:ip10:10.1.10.254:porti6881eed2:id20:-SG000112345678901232:ip10:10.1.10.254:porti1050eed2:id20:-TR2510-gu6z89jkpxd22:ip10:10.1.10.254:porti51413eeee
+
+Note: Now getting self, QBittorrent and Transmission as peers in list
+
+Problem solved.
