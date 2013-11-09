@@ -3,7 +3,7 @@ import hashlib
 import socket
 import requests
 import messages
-from struct import unpack
+from struct import pack, unpack
 
 peer_id = '-SG00011234567890123'
 torrent_file = "/home/user/silvia/my_torrents_as_tracker/file_1.torrent"
@@ -68,10 +68,10 @@ def get_peer_info(torrent_file):
         peer_info.append((peer['ip'], peer['id'], peer['port']))
     return peer_info
 
-def send_request_to_peer(peers_dictionary):
+def generate_handshake_to_peer(peers_dictionary):
     # this is what peer_dictionary looks like:
     # {'peers': [{'ip': '10.1.10.25', 'id': '-qB2970-QUVDu5V1VmZ1', 'port': 6881}, {'ip': '10.1.10.25', 'id': '-SG00011234567890123', 'port': 1050}, {'ip': '10.1.10.25', 'id': '-TR2510-gu6z89jkpxd2', 'port': 51413}], 'interval': 1800}
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
     """for peer in peers_dictionary['peers']:
         if peer['id'] != peer_id:
             tcp_host = peer['ip']
@@ -80,15 +80,12 @@ def send_request_to_peer(peers_dictionary):
             print "TCP port: ", tcp_port
             break
     """
-    tcp_host = '10.1.10.25'
-    tcp_port = 51413
-    s.connect((tcp_host, tcp_port))
     partial_handshake = messages.handshake(torrent_file)
     complete_handshake = partial_handshake + get_infohash(torrent_file) + peer_id
     print "************Sending handshake: ", complete_handshake
-    s.send(complete_handshake)
-    data = s.recv(len(complete_handshake))
-    return data
+    return complete_handshake
+
+
 
 def main():
     metainfo = get_torrent_info(torrent_file)
@@ -97,8 +94,27 @@ def main():
     print "************Response from tracker to HTTP GET request: ", peers_dictionary
     infohash = get_infohash(torrent_file)
     print "Infohash: ", infohash
-    response_from_peer = send_request_to_peer(peers_dictionary)
-    print "************Response handshake from peer: ", response_from_peer
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp_host = '10.1.10.25'
+    tcp_port = 51413
+    s.connect((tcp_host, tcp_port))
+    handshake = generate_handshake_to_peer(peers_dictionary)
+    s.send(handshake)
+    data = s.recv(len(handshake))
+    print "Peer id from peer: ", data[-20:]
+    print "Infohash from peer: ", hashlib.sha1(data[-40:-20]).hexdigest()
+    print "************Full response handshake from peer: ", data
+    """prefix = pack('!LB', 0001)
+    message_id = pack('B', 2)
+    interested_message = prefix + message_id
+    """
+    interested_message = "len=0001id=2"
+    s.send(interested_message)
+    reply = s.recv(len(interested_message))
+    print "Len: ", len(reply)
+    unpacked_reply = unpack('!12s', reply)
+    print "Reply to interested: ", reply
+    print "Unpacked: ", unpacked_reply
 
 if __name__ == "__main__":
     main()

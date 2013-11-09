@@ -43,9 +43,15 @@ PEERS - all users who are connected to the tracker AND either have a part of the
 
 SEEDERS - users who have the whole file
 
-Ex@@H
+represent aggregated HAVE messages from peer as a map of what they do and don't have - use bitstring module
+pip install bitstring
+
+60199
+
+Ex~@@O
 
 
 
-X/8\(
-rh5rh5BitTorrent protoco0f859d4872033b9b99c-SG0001123456789012
+-'F35#(
+MMBitTorrent protocolHr;+"`-DE1350-cZyTmYX8XCd)
+
