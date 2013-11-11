@@ -2,7 +2,7 @@ import bencode
 import parse_torrent
 from struct import *
 
-def handshake(torrent_file):
+def handshake(torrent):
     pstrlen = pack('B', 19)
     pstr = 'BitTorrent protocol'
     reserved = pack('!8x')
@@ -37,7 +37,7 @@ def keepalive():
 
 def interested():
     #fixed-length, no payload
-    #client sends to meet = "I would like to download this file from you"
+    #client sends to mean = "I would like to download this file from you"
     pass
 
 def uninterested():

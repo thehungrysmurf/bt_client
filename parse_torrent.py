@@ -6,12 +6,12 @@ import messages
 from struct import pack, unpack
 
 peer_id = '-SG00011234567890123'
-torrent_file = "/home/user/silvia/my_torrents_as_tracker/file_1.torrent"
+torrent_file = "/home/silvia/Hackbright/my_BT_client/misc/torrents/File_1.torrent"
 
 def get_torrent_info(torrent_file):
     t_file = open(torrent_file).read()
     parsed = bencode.bdecode(t_file)
-    #print "Parsed torrent: ", parsed
+    print "Parsed torrent: ", parsed
     torrent_info_dict = {}
     for key in parsed.keys():
         if key == 'announce':
@@ -95,7 +95,7 @@ def main():
     infohash = get_infohash(torrent_file)
     print "Infohash: ", infohash
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    tcp_host = '10.1.10.25'
+    tcp_host = '192.168.1.6'
     tcp_port = 51413
     s.connect((tcp_host, tcp_port))
     handshake = generate_handshake_to_peer(peers_dictionary)
@@ -108,13 +108,14 @@ def main():
     message_id = pack('B', 2)
     interested_message = prefix + message_id
     """
-    interested_message = "len=0001id=2"
+    prefix = "!IB"
+    interested_message = pack(prefix, 1, 2)
+    choke_message = pack(prefix, 1, 0)
+    unchoke_message = pack(prefix, 1, 1)
+    not_interested_message = pack(prefix, 1, 3)
     s.send(interested_message)
-    reply = s.recv(len(interested_message))
-    print "Len: ", len(reply)
-    unpacked_reply = unpack('!12s', reply)
-    print "Reply to interested: ", reply
-    print "Unpacked: ", unpacked_reply
+    reply_to_interested = s.recv(len(interested_message))
+    print "Reply to interested: ", unpack("!IB", reply_to_interested)
 
 if __name__ == "__main__":
     main()
