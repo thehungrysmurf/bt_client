@@ -28,13 +28,13 @@ class InitiateConnection(object):
     def send_message(self, message):
         self.s.send(message)
 
-    def receive_message(self, message):
-        received = self.s.recv(len(message))
+    def receive_message(self, size):
+        received = self.s.recv(size)
         return received
 
     def close_connection_socket(self, ip, port):
         self.socket.close()
-    
+
     def send_request_to_tracker(self, torrent):
         payload = {'info_hash': torrent.info_hash, 'peer_id': torrent.peer_id, 'ip': self.ip, 'port': self.port, 'uploaded': 0, 'downloaded': 0, 'left': torrent.total_length, 'event': 'started'}
         #make sure you refer to "connection.peers_from_tracker" only once, so it doesn't send multiple requests to the tracker:
