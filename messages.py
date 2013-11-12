@@ -3,11 +3,18 @@ import parse_torrent
 from struct import *
 
 def handshake(torrent):
+    #<pstrlen><pstr><reserved><info_hash><peer_id>
+    """#Old handshake:
     pstrlen = pack('B', 19)
     pstr = 'BitTorrent protocol'
     reserved = pack('!8x')
-    partial_handshake = pstrlen + pstr + reserved
-    return partial_handshake
+    handshake = pstrlen + pstr + reserved + torrent.info_hash + torrent.peer_id
+    return handshake"""
+
+    #New handshake: 
+    pstr = 'BitTorrent protocol'
+    handshake = pack("!B19s8x20s20s", len(pstr), pstr, torrent.info_hash, torrent.peer_id)
+    return handshake
 
 class Message(object):
     #alternatively, create a dictionary like Zach: Messages = {'keepalive': -1, 'choke':0, 'unchoke':1, ....}
