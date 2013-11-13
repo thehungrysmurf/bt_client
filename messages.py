@@ -2,6 +2,8 @@ import bencode
 import parse_torrent
 from struct import *
 
+#introduce global variables that keep track of the steps that have been done - handshake happened, unchoke received, etc
+
 def handshake(torrent):
     #<pstrlen><pstr><reserved><info_hash><peer_id>
     """#Old handshake:
@@ -15,6 +17,14 @@ def handshake(torrent):
     pstr = 'BitTorrent protocol'
     handshake = pack("!B19s8x20s20s", len(pstr), pstr, torrent.info_hash, torrent.peer_id)
     return handshake
+
+def assemble_message(m_id):
+    prefix = "!IB"
+    if m_id == 2:
+        message = pack(prefix, 1, m_id)
+    if m_id == 5:
+        message = pack(prefix+'15s', 17, m_id, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+    return message
 
 class Message(object):
     #alternatively, create a dictionary like Zach: Messages = {'keepalive': -1, 'choke':0, 'unchoke':1, ....}
