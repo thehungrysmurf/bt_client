@@ -41,18 +41,25 @@ def main():
     unpacked_payload = unpack("!7B", rb[2])
     print "payload unpacked: ", unpacked_payload
 
+    #sending unchoke:
+    u = messages.assemble_message("unchoke")
+    print "sending unchoke: ", unpack("!IB", u)
+    c.send_message(u)
+    ru = messages.get_message_type(c)
+    print "reply: ", ru
+
     #sending interested:
     i = messages.assemble_message("interested")
-    print "sending interested: ", unpack("!IB7", i)
+    print "sending interested: ", unpack("!IB", i)
     c.send_message(i)
     print "reply: ", messages.get_message_type(c)
 
-    #sending request:
+    """#sending request:
     req = messages.assemble_message("request")
     print "sending request: ", unpack("!IBIII", req)
     c.send_message(req)
     rr = messages.get_message_type(c)
-    print "reply: ", rr
+    print "reply: ", rr"""
 
 if __name__ == "__main__":
     main()

@@ -22,7 +22,9 @@ def assemble_message(message_name):
         message = pack(prefix+'7s', 17, message_types[message_name], bitfield)
     if message_name == "request":
         #request very first piece, no offset, block = 2^14
-        message = pack("!IBIII", 13, 6, 0, 0, 16384)
+        message = pack(prefix+"III", 13, 6, 0, 0, 16384)
+    if message_name == "unchoke":
+        message = pack(prefix, 1, message_types[message_name])
     return message
 
 def get_message_type(connection):
