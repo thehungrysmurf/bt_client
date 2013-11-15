@@ -29,3 +29,11 @@ class Torrent(object):
 		for i in range(0, len(self.subpieces), 20):
 			self.list_of_subpieces_hashes.append(self.subpieces[i:i+20])
 		self.no_of_subpieces = len(self.list_of_subpieces_hashes)
+
+	def printInfo(self):
+#		print "************Metainfo: ", self.info_dict
+		print "************Piece length: ", self.piece_length
+		print "************Tracker URL: ", self.tracker_url
+		print "************No. of subpieces", self.no_of_subpieces
+#		print "************List of hashes of subpieces: ", self.list_of_subpieces_hashes
+		print "************Info hash: ", self.info_hash.encode('base64')
