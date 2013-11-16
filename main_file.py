@@ -9,6 +9,7 @@ TORRENT_TEST_FILE = '/home/silvia/Hackbright/my_BT_client/misc/torrents/File_1.t
 
 def main():
 	inputs = []
+	outputs = []
 	print "starting"
 
 	# Read & Parse Torrent File
@@ -29,16 +30,20 @@ def main():
 	running = True
 	while running:
 		
-		ready_to_read, ready_to_write, in_error = select.select(inputs, [], [])
+		ready_to_read, ready_to_write, in_error = select.select(inputs, outputs, [])
 
 		for peer in ready_to_read:
-			peer.recv_message()
-			# b = messages.assemble_message("bitfield")
-   #  		print "sending bitfield: ", unpack("!IB15s", b)
-    		#peer.socket.send(b)
-    		i = messages.assemble_message("interested")
-    		print "sending interested: ", unpack("!IB", i)
-    		peer.socket.send(i)
+			#let the Peer class method handle it - conditions go there
+			if not peer.recv_message():
+				# Disconnect and remove this peer from the list of inputs we listen to
+				print "Peer %s disconnected!" % peer.id
+				peer.socket.close()
+				inputs.remove(peer)
+
+    	# for message_to_peer in ready_to_write:
+    	# 	# let the Peer class method handle it, based on conditions determining how to react in the recv_message method
+    	# 	# if this doesn't work as is, try putting the messages to be sent in a queue - set condition here: if queue has something, send it.
+    	# 	peer.send_next_message(message_to_peer)
 
 	print "done"
 

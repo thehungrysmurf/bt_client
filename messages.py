@@ -1,45 +1,22 @@
 import bencode
-import parse_torrent
 from struct import *
-#from connection import InitiateConnection
 
-#introduce global variables that keep track of the steps that have been done - handshake happened, unchoke received, etc
-
-#**********TO DO:
-#CREATE 'SEND_MESSAGE' METHOD, TAKES A MESSAGE CLASS TYPE AS A PARAMETER
-#IN MAIN FILE, SET A CONNECTION CLASS (OR A MESSAGE CLASS?) TO BE THE 'OUTPUTS' - DON'T FORGET THE 'FILENO' FUNCTION!
-#HAVE A HUGE 'IF' STATEMENT IN THE OUTPUTS SECTION OF THE SELECT WHERE SENDING MESSAGE DEPENDING ON STATE OF PEER: EX. IF HANDSHAKE EXCHANGED, SEND MESSAGE(BITFIELD) / IF BITFIELD RECEIVED, SEND MESSAGE(INTERESTED)
-
-def assemble_message(message_name):
+def assemble_message(message_id):
     prefix = "!IB"
     message_types = {"keepalive":None, "choke": 0, "unchoke": 1, "interested":2, "not interested": 3, "have": 4, "bitfield": 5, "request": 6, "piece":7, "cancel": 8, "port": 9}
-    if message_name == "interested":
-        message = pack(prefix, 1, message_types[message_name])
-    if message_name == "bitfield":
+    if message_id == 2:
+        message = pack(prefix, 1, message_id)
+    if message_id == 5:
         what_i_have = pack('15b', 0,0,1,0,1,0,0,0,0,0,0,0,0,0,0)
         bitfield = what_i_have*7
-        message = pack(prefix+'15s', 16, message_types[message_name], bitfield)
-    if message_name == "request":
+        message = pack(prefix+'15s', 16, message_id, bitfield)
+        print "Bitfield Assemble: ", unpack("!IB15s", message)
+    if message_id == 6:
         #request very first piece, no offset, block = 2^14
         message = pack(prefix+"III", 13, 6, 0, 0, 16384)
-    if message_name == "unchoke":
-        message = pack(prefix, 1, message_types[message_name])
+    if message_id == 1:
+        message = pack(prefix, 1, message_id)
     return message
-
-def create_send_message(message_type):
-    if message_type isinstance Interested:
-        message = pack(prefix, 1, message_type.m_id)
-    if message_type isinstance Bitfield:
-        #CALCULATE YOUR BITFIELD HERE:
-        what_i_have = pack('15b', 0,0,1,0,1,0,0,0,0,0,0,0,0,0,0)
-        bitfield = what_i_have*7
-        message = pack(prefix+'15s', 16, message_type.m_id, bitfield)
-    if message_type isinstance Request:
-        #right now requesting very first piece, no offset, block = 2^14. 
-        #CALCULATE WHAT PIECE TO GET BASED ON PEER'S BITFIELD/HAVE AND YOUR BITFIELD
-        message = pack(prefix+"III", 13, 6, 0, 0, 16384)
-    if message_type isinstance Unchoke:
-        message = pack(prefix, 1, message_type.m_id)
 
 class Message(object):
     #alternatively, create a dictionary like Zach: Messages = {'keepalive': -1, 'choke':0, 'unchoke':1, ....}
