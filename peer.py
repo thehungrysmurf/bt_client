@@ -91,7 +91,7 @@ class Peer(object):
 				#unchoke received, send request
 				print "Got unchoke!"
 				self.choked = False
-				self.send_next_message(mlist["request"])
+				self.send_next_message(mlist["request"], self.torrent)
 
 			if message_id == mlist["interested"]:
 				print "Got interested! "
@@ -107,14 +107,14 @@ class Peer(object):
 				print "Got have!"
 				#have received, send interested
 				self.interested = True
-				self.send_next_message(mlist["interested"])
+				self.send_next_message(mlist["interested"], self.torrent)
 
 			if message_id == mlist["bitfield"]:
 				print "Got bitfield!"
 				#bitfield received, send your own bitfield
 				self.bitfield = True
 				#self.send_next_message(message_id)
-				self.send_next_message(mlist["bitfield"])
+				self.send_next_message(mlist["bitfield"], self.torrent)
 
 			if message_id == mlist["piece"]:
 				print "Got piece!"
@@ -125,8 +125,8 @@ class Peer(object):
 			if message_id == mlist["port"]:
 				print "Got port!"
 
-			else:
-				print "Got something else!"
+			# else:
+			# 	print "Got something else!"
 
 			# 	if length >= 1:
 			# 		self.current_message.recvBitfield(self.socket)
@@ -147,8 +147,8 @@ class Peer(object):
 				#piece received, save to disk (seek)
 				pass
 
-	def send_next_message(self, message_id):	
-		send = messages.assemble_message(message_id)
+	def send_next_message(self, message_id, torrent):	
+		send = messages.assemble_message(message_id, torrent)
 		print "Sending message with id %r: %r" %(message_id, send)
 		self.socket.sendall(send)
 

@@ -1,15 +1,16 @@
 import bencode
 from struct import *
+import files
 
-def assemble_message(message_id):
+def assemble_message(message_id, torrent):
     prefix = "!IB"
     message_types = {"keepalive":None, "choke": 0, "unchoke": 1, "interested":2, "not interested": 3, "have": 4, "bitfield": 5, "request": 6, "piece":7, "cancel": 8, "port": 9}
     if message_id == 2:
         message = pack(prefix, 1, message_id)
     if message_id == 5:
-        what_i_have = pack('15b', 0,0,1,0,1,0,0,0,0,0,0,0,0,0,0)
-        bitfield = what_i_have*7
-        message = pack(prefix+'15s', 16, message_id, bitfield)
+        b = files.Bitfield(torrent)
+        bitfield_to_send = b.bitfield_packed
+        message = pack(prefix+'15s', 16, message_id, bitfield_to_send)
         print "Bitfield Assemble: ", unpack("!IB15s", message)
     if message_id == 6:
         #request very first piece, no offset, block = 2^14
@@ -59,18 +60,18 @@ class have(Message):
     #fixed length(0005), payload = zero-based index of a piece that was successfully downloaded and verified with hash
     m_id = 4
 
-class Bitfield(Message):
-    #may be sent by the downloader only immediately after handshake is completed & before sending anything else
-    #variable length
-    #doesn't have to be sent if the downloader has no pieces
-    m_id = 5
-    payload = None
+# class Bitfield(Message):
+#     #may be sent by the downloader only immediately after handshake is completed & before sending anything else
+#     #variable length
+#     #doesn't have to be sent if the downloader has no pieces
+#     m_id = 5
+#     payload = None
 
-    def recvBitfield(self, socket):
-        self.payload = self.recv(socket)
+#     def recvBitfield(self, socket):
+#         self.payload = self.recv(socket)
 
-    def getBitfield(self):
-        pass
+#     def getBitfield(self):
+#         pass
 
 class request(Message):
     #fixed length(0013)

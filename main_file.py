@@ -4,6 +4,7 @@ from peer import Peer
 import select
 import messages
 from struct import *
+from files import Bitfield
 
 TORRENT_TEST_FILE = '/home/silvia/Hackbright/my_BT_client/misc/torrents/File_1.torrent'
 
