@@ -9,12 +9,12 @@ class Torrent(object):
 		self.tracker_url = self.info_dict['announce']
 		self.info_hash = hashlib.sha1(bencode.bencode(self.info_dict['info'])).digest()
 		self.info_hash_readable = hashlib.sha1(bencode.bencode(self.info_dict['info'])).hexdigest()
-		self.peer_id = '-SG00011234567890123' 
+		self.peer_id = '-SG00011234567890123'
 		if self.info_dict.get('name'):
 			self.name = self.info_dict['name']
 		self.encoding = self.info_dict.get('encoding', None)
-		if self.info_dict.get('files'):
-			self.no_of_files = len(self.info_dict['files'])
+		if self.info_dict['info'].get('files'):
+			self.no_of_files = len(self.info_dict['info']['files'])
 			self.total_length = 0
 			for files in self.info_dict['info']['files']:
 				self.total_length += files['length']
