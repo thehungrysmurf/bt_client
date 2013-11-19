@@ -1,5 +1,6 @@
 import bencode
 import hashlib
+from files import Bitfield
 
 class Torrent(object):
 	def __init__(self, torrent_file):
@@ -24,11 +25,13 @@ class Torrent(object):
 		#BitTorrent is confusing because it calls these "pieces" but actually they're the blocks that make up the pieces specified in the ['piece length'] field. I'll call them "subpieces".
 		self.subpieces = self.info_dict['info']['pieces']
 		self.piece_length = self.info_dict['info']['piece length']
-		#['pieces'] is a concatenated string of the hashes of each piece (each takes 20 characters). Splitting them up into a list:
+		#['pieces'] is a concatenated string of the hashes of each piece (each takes 20 characters). Splitting these up into a list:
 		self.list_of_subpieces_hashes = []
 		for i in range(0, len(self.subpieces), 20):
 			self.list_of_subpieces_hashes.append(self.subpieces[i:i+20])
 		self.no_of_subpieces = len(self.list_of_subpieces_hashes)
+
+		self.bitfield = Bitfield(self)
 
 	def printInfo(self):
 		#print "************Metainfo: ", self.info_dict
