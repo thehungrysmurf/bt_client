@@ -11,9 +11,12 @@ class Piece(object):
 		self.data = data
 
 	def check_piece_hash(self):
-		if hashlib.sha1(self.data) == self.torrent.list_of_subpieces_hashes[self.index]:
+		print "self.index: ", self.index
+		print "torrent hash for the index: ", self.torrent.list_of_subpieces_hashes[self.index]
+		print "actual hash: ", hashlib.sha1(self.data).digest()
+		if hashlib.sha1(self.data).digest() == self.torrent.list_of_subpieces_hashes[self.index]:
 			self.have_pieces += 1
-			update_bitfield(self.index)
+			#update_bitfield(self.index)
 			self.write_to_disk()
 			return True
 		else:

@@ -22,9 +22,13 @@ class Peer(object):
 		#self.current_message = None
 		self.bitfield = files.Bitfield(self.torrent)  #		 files.Bitfield(torrent).bitfield
 		print "Initializing bitfield for peer %s: %r" % (self.id, self.bitfield.bitfield)
+		
+		#this handles the state of the block, which can arrive in segments that add up to 16384 (a full block):
 		self.requesting = False
-		self.piece_so_far = 0
-		self.subpiece = ''
+		self.piece_data = ''
+		self.block_data = ''
+		self.piece_in_progress_index = -1
+		self.block_incomplete = False
 
 	def connect(self):
 		print "connecting to a peer..."
@@ -62,38 +66,51 @@ class Peer(object):
 		if self.handshake:
 			print "Receiving message..."
 
-			# First we expect to receive 4 bytes for the message length
-			data = self.socket.recv(4)
-			if data:
-				length = int(unpack("!I", data)[0])
+			if self.block_incomplete:
+				while(len(self.block_data) < 16384):
+					payload = self.socket.recv(16384 - self.block_data)
+					print "Adding %r to block..." %len(payload)
+					self.block_data += payload
+					print "Block complete! Length: ", len(self.block_data)
+				self.react_to_message(7, payload)
+
+			#DO THIS INSTEAD OF THE WHILE LOOP: self.message_complete = compare length from header to actual payload size. If it doesn't match, keep receiving and adding to the payload
+
 			else:
-				# No data received, we are probably disconnected
-				return False
-
-			if length < 1:
-				print "Message length < 1 - keepalive or invalid message."
-				return False
-
-			m = self.socket.recv(1)
-			message_id = int(unpack('!B', m)[0])
-			print "Received message of length %r and id %r" %(length, message_id)
-			payload = None
-			if length > 1:
-				#basic messages have length 1, so the payload is whatever exceeds 1 byte (if any)
-				if message_id == 7:
-				 	payload = (self.socket.recv(4), self.socket.recv(4), self.socket.recv(length - 9))
+				# First we expect to receive 4 bytes for the message length
+				self.data = self.socket.recv(4)
+				if self.data:
+					self.length = int(unpack("!I", self.data)[0])
 				else:
-					payload = self.socket.recv(length - 1)
-				#print "Payload: ", payload
+					# No data received, we are probably disconnected
+					return False
+
+				if self.length < 1:
+					print "Message length < 1 - keepalive or invalid message."
+					return False
+
+				m = self.socket.recv(1)
+				message_id = int(unpack('!B', m)[0])
+				print "Received message of length %r and id %r" %(self.length, message_id)
+				payload = None
+				if self.length > 1:
+					#basic messages have length 1, so the payload is whatever exceeds 1 byte (if any)
+					if message_id == 7:
+						print "Length from header: ", self.length				
+						index = int(unpack("!I", self.socket.recv(4))[0])
+						self.piece_in_progress_index = index
+						begin = int(unpack("!I", self.socket.recv(4))[0])
+						block = self.socket.recv(self.length - 9)
+						payload = [index, begin, block]
+					else:
+						payload = self.socket.recv(self.length - 1)
 				self.react_to_message(message_id, payload)
-			else:
-				self.react_to_message(message_id)
 		else:
 			self.recv_handshake()
 
 		return True
 
-	def react_to_message(self, message_id, payload=None):
+	def react_to_message(self, message_id, payload):
 			mlist = {"keepalive":None, "choke": 0, "unchoke": 1, "interested":2, "not interested": 3, "have": 4, "bitfield": 5, "request": 6, "piece":7, "cancel": 8, "port": 9}
 			#change state for all the above
 			if message_id == mlist["keepalive"]:
@@ -143,14 +160,15 @@ class Peer(object):
 
 			if message_id == mlist["piece"]:
 				print "!!!!!!!!!!!!!!!!!!!!!!! GOT ONE PIECE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-				piece_index = unpack("!I", payload[0])[0]
-				piece_begin = unpack("!I", payload[1])[0]
-				print "Index: ", piece_index
-				print "Begin: ", piece_begin
-				print "Piece: ", payload[2]
-				self.subpiece += payload[2]
-				self.piece_so_far += len(self.subpiece)
-				self.check_piece_completeness(piece_index)
+				self.block_incomplete = True
+				self.block_data += payload[2]
+
+				if len(self.block_data) == 16384:
+					self.piece_data += self.block_data
+					print "Adding a full block to the piece!"
+					self.block_incomplete = False
+					self.block_data = ''
+					self.check_piece_completeness(self.piece_in_progress_index)
 
 			if message_id == mlist["cancel"]:
 				print "Got cancel!"
@@ -158,12 +176,8 @@ class Peer(object):
 			if message_id == mlist["port"]:
 				print "Got port!"
 
-			if message_id == 6:
+			if message_id == mlist["request"]:
 				#request received and serve the piece requested, but handle this later
-				pass
-
-			if message_id == 7:
-				#piece received, hash check and save to disk
 				pass
 
 	#first piece I need (is 0 in my_bitfield), if the peer also has it:
@@ -188,15 +202,15 @@ class Peer(object):
 		self.unchoked = False
 
 	def check_piece_completeness(self, piece_index):
-		if self.piece_so_far < self.torrent.piece_length:
-			self.send_piece_request(piece_index, self.piece_so_far)
-			print "Piece is incomplete :("
+		if len(self.piece_data) < self.torrent.piece_length:
+			print "Piece is incomplete, sending request for another block to begin at %r..." %len(self.piece_data)
+			self.send_piece_request(piece_index, len(self.piece_data))
 		else:
-			print "Piece is complete!", self.piece_so_far
+			print "Piece is complete! Length:", len(self.piece_data)
 			self.requesting = False
 			self.unchoked = True
-			Piece(self.torrent, piece_index, self.subpiece).check_piece_hash()
-			self.piece_so_far = 0
+			Piece(self.torrent, piece_index, self.piece_data).check_piece_hash()
+			self.piece_data = 0
 
 	def send_next_message(self, assembled_message):	
 		print "Sending message: ", assembled_message

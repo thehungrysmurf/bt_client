@@ -72,7 +72,8 @@ class Request(Message):
     def assemble(self, torrent, piece_index, begin):
         #request very first piece, no offset, block = 2^14
         self.m_id = 6
-        message = pack(self.prefix+"III", 13, 6, int(piece_index), begin, 16384)
+        self.block_size = 16384
+        message = pack(self.prefix+"III", 13, 6, int(piece_index), begin, self.block_size)
         print "message: ", message
         return message
 
