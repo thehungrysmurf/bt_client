@@ -26,33 +26,11 @@ class Bitfield(object):
 		bitfield_packed = struct.pack("%dB" % (len(self.bitfield)), *(i for i in self.bitfield))
 		return bitfield_packed
 
-
 	def update_bitfield(self, piece_index):
 		#update the bitfield by changing the bit corresponding to the piece to a 1. This means, add the corresponding power of 2 to the byte containing that bit
 		byte_index = int(math.ceil(piece_index / 8.0))
 		if byte_index > 0:
 			self.bitfield[byte_index - 1] += 2**(7 - (piece_index % 8))
 		else:
-			self.bitfield[byte_index] += 2**(7 - (piece_index % 8))	
-
-class Piece(object):
-	def __init__(self, torrent, index):
-		self.index = index
-		self.torrent = torrent
-		self.hash_check = self.torrent.list_of_subpieces_hashes[index]
-		self.complete = False
-
-	def get_piece(self, index):
-		m = Request(self.torrent, index, begin)
-		if self.size == self.torrent.piece_length:
-			self.complete = True
-
-	def check_piece_hash(self, piece, piece_index):
-		if hashlib.sha1(piece) == self.torrent.list_of_subpieces_hashes[piece_index]:
-			self.have_pieces += 1
-			update_bitfield(piece_index)
-			return True
-		else:
-			print "Piece hash incorrect! Not a valid piece."
-			return False
+			self.bitfield[byte_index] += 2**(7 - (piece_index % 8))
 		

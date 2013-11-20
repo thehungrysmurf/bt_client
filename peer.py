@@ -2,6 +2,7 @@ import socket
 import messages
 from struct import *
 import files
+from piece import Piece
 
 class Peer(object):
 
@@ -21,8 +22,9 @@ class Peer(object):
 		#self.current_message = None
 		self.bitfield = files.Bitfield(self.torrent)  #		 files.Bitfield(torrent).bitfield
 		print "Initializing bitfield for peer %s: %r" % (self.id, self.bitfield.bitfield)
-		self.requested_piece = None
-		self.piece_being_downloaded = None
+		self.requesting = False
+		self.piece_so_far = 0
+		self.subpiece = ''
 
 	def connect(self):
 		print "connecting to a peer..."
@@ -35,7 +37,7 @@ class Peer(object):
 		pass
 
 	def isUnchoked(self):
-		if self.choked == False and self.requested_piece == None:
+		if self.choked == False and self.requesting == False:
 			return True
 
 		return False
@@ -78,8 +80,11 @@ class Peer(object):
 			payload = None
 			if length > 1:
 				#basic messages have length 1, so the payload is whatever exceeds 1 byte (if any)
-				payload = self.socket.recv(length - 1)
-				print "Payload: ", payload
+				if message_id == 7:
+				 	payload = (self.socket.recv(4), self.socket.recv(4), self.socket.recv(length - 9))
+				else:
+					payload = self.socket.recv(length - 1)
+				#print "Payload: ", payload
 				self.react_to_message(message_id, payload)
 			else:
 				self.react_to_message(message_id)
@@ -137,8 +142,15 @@ class Peer(object):
 				self.send_next_message(bitfield_message.assemble(self.torrent))
 
 			if message_id == mlist["piece"]:
-				print "Got piece!"
-				#process_piece(payload)
+				print "!!!!!!!!!!!!!!!!!!!!!!! GOT ONE PIECE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+				piece_index = unpack("!I", payload[0])[0]
+				piece_begin = unpack("!I", payload[1])[0]
+				print "Index: ", piece_index
+				print "Begin: ", piece_begin
+				print "Piece: ", payload[2]
+				self.subpiece += payload[2]
+				self.piece_so_far += len(self.subpiece)
+				self.check_piece_completeness(piece_index)
 
 			if message_id == mlist["cancel"]:
 				print "Got cancel!"
@@ -168,11 +180,23 @@ class Peer(object):
 		return -1
 
 	# Send peer a request for a new piece
-	def send_piece_request(self, piece_index):
-		self.requested_piece = piece_index
+	def send_piece_request(self, piece_index, begin=0):
 		msg = messages.Request()
-		send = msg.assemble(self.torrent, piece_index, 0)
+		send = msg.assemble(self.torrent, piece_index, begin)
 		self.send_next_message(send)
+		self.requesting = True
+		self.unchoked = False
+
+	def check_piece_completeness(self, piece_index):
+		if self.piece_so_far < self.torrent.piece_length:
+			self.send_piece_request(piece_index, self.piece_so_far)
+			print "Piece is incomplete :("
+		else:
+			print "Piece is complete!", self.piece_so_far
+			self.requesting = False
+			self.unchoked = True
+			Piece(self.torrent, piece_index, self.subpiece).check_piece_hash()
+			self.piece_so_far = 0
 
 	def send_next_message(self, assembled_message):	
 		print "Sending message: ", assembled_message

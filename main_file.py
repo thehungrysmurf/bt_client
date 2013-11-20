@@ -53,7 +53,6 @@ def main():
 			if peer.isUnchoked():
 				print "Peer %s is unchoked!" % peer.id
 				print "Peer %s's Bitfield: %r" % (peer.id, peer.bitfield)
-
 				piece_to_request = client.piece_to_request( peer.bitfield )
 				print "piece to request: ", piece_to_request
 				if piece_to_request >= 0:
