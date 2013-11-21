@@ -11,8 +11,8 @@ class Torrent(object):
 		self.info_hash = hashlib.sha1(bencode.bencode(self.info_dict['info'])).digest()
 		self.info_hash_readable = hashlib.sha1(bencode.bencode(self.info_dict['info'])).hexdigest()
 		self.peer_id = '-SG00011234567890123'
-		if self.info_dict.get('name'):
-			self.name = self.info_dict['name']
+		if self.info_dict['info'].get('name'):
+			self.name = self.info_dict['info']['name']
 		self.encoding = self.info_dict.get('encoding', None)
 		if self.info_dict['info'].get('files'):
 			self.no_of_files = len(self.info_dict['info']['files'])
@@ -30,7 +30,6 @@ class Torrent(object):
 		for i in range(0, len(self.subpieces), 20):
 			self.list_of_subpieces_hashes.append(self.subpieces[i:i+20])
 		self.no_of_subpieces = len(self.list_of_subpieces_hashes)
-
 		self.bitfield = Bitfield(self)
 
 	def printInfo(self):

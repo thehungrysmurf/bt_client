@@ -26,9 +26,12 @@ class Peer(object):
 		#this handles the state of the block, which can arrive in segments that add up to 16384 (a full block):
 		self.requesting = False
 		self.piece_data = ''
-		self.block_data = ''
-		self.piece_in_progress_index = -1
-		self.block_incomplete = False
+		self.subpiece_data = None
+
+		self.message_incomplete = False
+		self.incomplete_data = ''
+		self.incomplete_message_id = -1
+		self.data_length = -1
 
 	def connect(self):
 		print "connecting to a peer..."
@@ -62,19 +65,30 @@ class Peer(object):
 
 		print "Received handshake: ", reh_unpacked
 
+	def get_entire_message(self):
+		print "Buffer length before receiving 1 more segment %r" % len(self.incomplete_data)
+		receiving = self.socket.recv(self.data_length - len(self.incomplete_data))
+		print "Receing 1 segment of %r data..." %len(receiving)
+		self.incomplete_data += receiving
+		print "Buffer data length after receiving segment: ", len(self.incomplete_data)
+		if len(self.incomplete_data) < self.data_length-1:
+			self.recv_message()
+			print "Received < block size. Calling Receive function again..."
+		else:
+			print "Received all. Message complete. Length of message: ", len(self.incomplete_data)
+			self.react_to_message(self.incomplete_message_id, self.incomplete_data)
+			self.message_incomplete = False
+			self.incomplete_data = ''
+			self.incomplete_message_id = -1
+			self.data_length = -1
+
 	def recv_message(self):
 		if self.handshake:
 			print "Receiving message..."
 
-			if self.block_incomplete:
-				while(len(self.block_data) < 16384):
-					payload = self.socket.recv(16384 - self.block_data)
-					print "Adding %r to block..." %len(payload)
-					self.block_data += payload
-					print "Block complete! Length: ", len(self.block_data)
-				self.react_to_message(7, payload)
-
-			#DO THIS INSTEAD OF THE WHILE LOOP: self.message_complete = compare length from header to actual payload size. If it doesn't match, keep receiving and adding to the payload
+			#process incomplete messages:
+			if self.message_incomplete:
+				self.get_entire_message()
 
 			else:
 				# First we expect to receive 4 bytes for the message length
@@ -93,18 +107,38 @@ class Peer(object):
 				message_id = int(unpack('!B', m)[0])
 				print "Received message of length %r and id %r" %(self.length, message_id)
 				payload = None
+				if self.length == 1:
+					self.react_to_message(message_id, payload)
 				if self.length > 1:
 					#basic messages have length 1, so the payload is whatever exceeds 1 byte (if any)
 					if message_id == 7:
-						print "Length from header: ", self.length				
-						index = int(unpack("!I", self.socket.recv(4))[0])
-						self.piece_in_progress_index = index
-						begin = int(unpack("!I", self.socket.recv(4))[0])
+						print "Length from header: ", self.length			
+						i = self.socket.recv(4)
+						index = str(unpack("!I", i)[0])
+						b = self.socket.recv(4)
+						begin = str(unpack("!I", b)[0])
+
 						block = self.socket.recv(self.length - 9)
-						payload = [index, begin, block]
+						payload = i+b+block
+						actual_length = len(i)+len(b)+len(block)
+					
 					else:
 						payload = self.socket.recv(self.length - 1)
-				self.react_to_message(message_id, payload)
+						actual_length = len(payload)
+
+					print "Message length: ", self.length
+					print "Actual length: ", actual_length
+
+					if (actual_length != self.length-1):
+						print "Received less than length. Sending to <get_entire_block> function..."
+						self.incomplete_data+=payload
+						self.data_length = self.length
+						self.incomplete_message_id = message_id
+						self.message_incomplete = True
+						self.recv_message()
+
+					else:
+						self.react_to_message(message_id, payload)
 		else:
 			self.recv_handshake()
 
@@ -159,16 +193,13 @@ class Peer(object):
 				self.send_next_message(bitfield_message.assemble(self.torrent))
 
 			if message_id == mlist["piece"]:
-				print "!!!!!!!!!!!!!!!!!!!!!!! GOT ONE PIECE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-				self.block_incomplete = True
-				self.block_data += payload[2]
-
-				if len(self.block_data) == 16384:
-					self.piece_data += self.block_data
-					print "Adding a full block to the piece!"
-					self.block_incomplete = False
-					self.block_data = ''
-					self.check_piece_completeness(self.piece_in_progress_index)
+				print "!!!!!!!!!!!!!!!!!!!!!!! GOT ONE SUBPIECE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+				piece_index = unpack("!I", payload[0:4])[0]
+				piece_begin = unpack("!I", payload[4:8])[0]
+				self.piece_data += payload[8:]
+				print "Piece index: ", piece_index
+				print "Piece begin: ", piece_begin
+				self.check_piece_completeness(piece_index)
 
 			if message_id == mlist["cancel"]:
 				print "Got cancel!"
@@ -183,7 +214,7 @@ class Peer(object):
 	#first piece I need (is 0 in my_bitfield), if the peer also has it:
 	def piece_to_request(self, bitfield_from_peer):
 		print "Client bitfield: ", self.bitfield.bitfield
-		print "Peer bitfield: ", bitfield_from_peer.bitfield
+		print "Peer bitfield: ", bitfield_from_peer.bitfield, type(bitfield_from_peer.bitfield)
 		for byte in range(0, len(self.bitfield.bitfield)):
 			for bit in reversed(range(8)):				
 				if ((int(self.bitfield.bitfield[byte]) >> bit) & 1) == 0:
@@ -207,10 +238,20 @@ class Peer(object):
 			self.send_piece_request(piece_index, len(self.piece_data))
 		else:
 			print "Piece is complete! Length:", len(self.piece_data)
+			self.write_piece(piece_index)
 			self.requesting = False
-			self.unchoked = True
-			Piece(self.torrent, piece_index, self.piece_data).check_piece_hash()
-			self.piece_data = 0
+			self.choked = False		
+			
+	def write_piece(self, piece_index):
+		p = Piece(self.torrent, piece_index, self.piece_data)
+		self.piece_data = ''
+		if p.check_piece_hash:
+			print "HASH MATCHES!"
+		p.write_to_disk()
+		print "Requesting next piece..."
+		#self.send_piece_request(self.piece_to_request(self.bitfield))
+		self.bitfield.update_bitfield(piece_index)
+		print "New bitfield: ", self.bitfield.bitfield
 
 	def send_next_message(self, assembled_message):	
 		print "Sending message: ", assembled_message
