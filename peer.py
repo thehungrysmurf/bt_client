@@ -14,24 +14,24 @@ class Peer(object):
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.torrent = torrent
 
-		#for now, these only define my state as a downloader (getting the file, not seeding the file)
-		self.handshake = False 
-		self.choked = True
-		self.have = None
+		self.handshake = False
 		self.interested = False
-		#self.current_message = None
-		self.bitfield = files.Bitfield(self.torrent)  #		 files.Bitfield(torrent).bitfield
-		print "Initializing bitfield for peer %s: %r" % (self.id, self.bitfield.bitfield)
-		
-		#this handles the state of the block, which can arrive in segments that add up to 16384 (a full block):
-		self.requesting = False
-		self.piece_data = ''
-		self.subpiece_data = None
+		self.bitfield = files.Bitfield(self.torrent)
+		print "Initializing bitfield for peer %s: %r" % (self.id, self.bitfield.bitfield) 
 
+		#state machine:
+		self.choked = True
+		self.downloading = False
+		self.requesting = False
+		self.complete = False
+		
+		#these make up the buffer for incomplete messages:
 		self.message_incomplete = False
 		self.incomplete_data = ''
 		self.incomplete_message_id = -1
 		self.data_length = -1
+		self.piece_data = ''
+		self.have = -1
 
 	def connect(self):
 		print "connecting to a peer..."
@@ -44,10 +44,12 @@ class Peer(object):
 		pass
 
 	def isUnchoked(self):
-		if self.choked == False and self.requesting == False:
+		if self.choked == False:
 			return True
-
 		return False
+
+	def hasPiece(self):
+		return self.have
 
 	def send_handshake(self):
 		#<pstrlen><pstr><reserved><info_hash><peer_id>
@@ -172,7 +174,7 @@ class Peer(object):
 
 			if message_id == mlist["not interested"]:
 				print "Got not interested!"
-				#not sure what this one does, but I think it's where you sent the bitfield and the peer doesn't have the pieces you need, so drop the connection
+				#for you sent the bitfield and the peer doesn't have the pieces you need, so drop the connection
 				self.interested = False
 
 			if message_id == mlist["have"]:
@@ -193,6 +195,7 @@ class Peer(object):
 				self.send_next_message(bitfield_message.assemble(self.torrent))
 
 			if message_id == mlist["piece"]:
+				self.downloading = True
 				print "!!!!!!!!!!!!!!!!!!!!!!! GOT ONE SUBPIECE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 				piece_index = unpack("!I", payload[0:4])[0]
 				piece_begin = unpack("!I", payload[4:8])[0]
@@ -213,15 +216,12 @@ class Peer(object):
 
 	#first piece I need (is 0 in my_bitfield), if the peer also has it:
 	def piece_to_request(self, bitfield_from_peer):
-		print "Client bitfield: ", self.bitfield.bitfield
-		print "Peer bitfield: ", bitfield_from_peer.bitfield, type(bitfield_from_peer.bitfield)
 		for byte in range(0, len(self.bitfield.bitfield)):
 			for bit in reversed(range(8)):				
 				if ((int(self.bitfield.bitfield[byte]) >> bit) & 1) == 0:
 					if ((int(bitfield_from_peer.bitfield[byte]) >> bit) & 1) == 1:
-						return (8*byte + (7 - bit))
-		# This peer doesn't have any of the pieces you need.
-		
+						return int((8*byte + (7 - bit)))
+		# This peer doesn't have any of the pieces you need.	
 		return -1
 
 	# Send peer a request for a new piece
@@ -230,7 +230,6 @@ class Peer(object):
 		send = msg.assemble(self.torrent, piece_index, begin)
 		self.send_next_message(send)
 		self.requesting = True
-		self.unchoked = False
 
 	def check_piece_completeness(self, piece_index):
 		if len(self.piece_data) < self.torrent.piece_length:
@@ -238,23 +237,24 @@ class Peer(object):
 			self.send_piece_request(piece_index, len(self.piece_data))
 		else:
 			print "Piece is complete! Length:", len(self.piece_data)
-			self.write_piece(piece_index)
-			self.requesting = False
-			self.choked = False		
+			self.write_piece(piece_index)	
+			self.downloading = False
+			self.requesting = False	
 			
 	def write_piece(self, piece_index):
 		p = Piece(self.torrent, piece_index, self.piece_data)
 		self.piece_data = ''
 		if p.check_piece_hash:
 			print "HASH MATCHES!"
-		p.write_to_disk()
+			p.write_to_disk()
+			self.have = piece_index
+		else:
+			print "Hash doesn't match. Not a valid piece!"
 		print "Requesting next piece..."
 		#self.send_piece_request(self.piece_to_request(self.bitfield))
-		self.bitfield.update_bitfield(piece_index)
-		print "New bitfield: ", self.bitfield.bitfield
-
+			
 	def send_next_message(self, assembled_message):	
-		print "Sending message: ", assembled_message
+		print "Sending message: %r" %assembled_message
 		self.socket.sendall(assembled_message)
 
 	# This lets the Peer class pretend to be a socket

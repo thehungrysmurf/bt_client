@@ -52,21 +52,37 @@ def main():
 		for peer in inputs:
 			if peer.isUnchoked():
 				print "Peer %s is unchoked!" % peer.id
-				print "Peer %s's Bitfield: %r" % (peer.id, peer.bitfield)
+				print "Peer %s's Bitfield: %r" % (peer.id, peer.bitfield.bitfield)
+				print "Client's bitfield: %r" %client.bitfield.bitfield
 				piece_to_request = client.piece_to_request( peer.bitfield )
-				print "piece to request: ", piece_to_request
+				
 				if piece_to_request >= 0:
-					peer.send_piece_request(piece_to_request)
+					while peer.hasPiece() < 0 and not peer.requesting:
+						print "--------------BEGINNING OF WHILE LOOP---------------"
+						print "client haspiece: %r" %client.hasPiece()
+						print "client requesting: ", client.requesting
+						print "peer haspiece: ", peer.hasPiece()
+						print "peer requesting: ", peer.requesting
+						print "piece to request: ", piece_to_request
+						peer.send_piece_request(piece_to_request)
+						print "--------------END OF WHILE LOOP---------------"
+
 				else:
 					print "Peer %s has nothing I need, disconnecting" % peer.id
 					inputs.remove(peer)
 					peer.socket.close()
+			
+			if peer.have >= 0:
+				print "---------------UPDATING BITFIELD--------------"
+				print "Peer HasPiece: %r" %peer.have
+				print "bitfield before: ", client.bitfield.bitfield
+				client.bitfield.update_bitfield(peer.have)
+				print "New bitfield: ", client.bitfield.bitfield
+				peer.have = -1
+				print "---------------FINISHED UPDATING BITFIELD----------------"
 
-    	# for message_to_peer in ready_to_write:
-    	# 	# let the Peer class method handle it, based on conditions determining how to react in the recv_message method
-    	# 	# if this doesn't work as is, try putting the messages to be sent in a queue - set condition here: if queue has something, send it.
-    	# 	peer.send_next_message(message_to_peer)
-
+				
+						
 	print "done"
 
 if __name__=="__main__":

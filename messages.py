@@ -73,8 +73,8 @@ class Request(Message):
         #request very first piece, no offset, block = 2^14
         self.m_id = 6
         self.block_size = 16384
-        message = pack(self.prefix+"III", 13, 6, int(piece_index), begin, self.block_size)
-        print "message: ", message
+        message = pack(self.prefix+"III", 13, 6, piece_index, begin, self.block_size)
+        print "message: %r" % message
         return message
 
 class Piece(Message):
