@@ -10,16 +10,13 @@ class Tracker(object):
 		self.port = m.group(2)
 		self.path = m.group(3)
 		self.peers = []
-		print "setting up tracker with host: %s  port: %s  path: %s" % (self.host, self.port, self.path)
+		print "Setting up tracker with host: %s  port: %s  path: %s" % (self.host, self.port, self.path)
 		#self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		pass
 
 	def connect(self, torrent):
 		payload = {'info_hash': torrent.info_hash, 'peer_id': torrent.peer_id, 'ip': self.host, 'port': self.port, 'uploaded': 0, 'downloaded': 0, 'left': torrent.total_length, 'event': 'started'}
-#		print "Payload: %r" % payload
-		#make sure you refer to "connection.peers_from_tracker" only once, so it doesn't send multiple requests to the tracker:
 		peers_from_tracker = requests.get(torrent.tracker_url, params = payload)
-
 		self.peers = bencode.bdecode(peers_from_tracker.text)['peers']
 
 

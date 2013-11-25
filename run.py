@@ -50,26 +50,27 @@ def main():
 
 		# Check for unchoked peers to send request messages
 		for peer in inputs:
-			if peer.isUnchoked():
+			if peer.is_unchoked():
 				print "Peer %s is unchoked!" % peer.id
 				print "Peer %s's Bitfield: %r" % (peer.id, peer.bitfield.bitfield)
 				print "Client's bitfield: %r" %client.bitfield.bitfield
 				piece_to_request = client.piece_to_request( peer.bitfield )
 				
 				if piece_to_request >= 0:
-					while peer.hasPiece() < 0 and not peer.requesting:
+					while peer.has_piece() < 0 and not peer.requesting:
 						print "--------------BEGINNING OF WHILE LOOP---------------"
-						print "Client has a piece: %r" %client.hasPiece()
+						print "Client has a piece: %r" %client.has_piece()
 						print "Client is requesting: ", client.requesting
-						print "Peer has a piece: ", peer.hasPiece()
+						print "Peer has a piece: ", peer.has_piece()
 						print "Peer is requesting: ", peer.requesting
 						print "Next piece to request: ", piece_to_request
 						peer.send_piece_request(piece_to_request, peer.torrent.block_size)
 						print "-----------------END OF WHILE LOOP------------------"
 
 				else:
-					if client.hasEntireFile:
+					if client.has_entire_file:
 						print "File is complete! No pieces left to download."
+						running = False
 					else:
 						print "Peer %s has nothing I need, disconnecting" % peer.id
 
@@ -88,6 +89,7 @@ def main():
 			if peer.complete:
 				print "GROOVY! You successfully downloaded a torrent."
 				inputs.remove(peer)
+				running = False
 						
 	print "~~~ Done ~~~"
 

@@ -49,15 +49,15 @@ class Peer(object):
 	def listen(self):
 		pass
 
-	def isUnchoked(self):
+	def is_unchoked(self):
 		if self.choked == False:
 			return True
 		return False
 
-	def hasPiece(self):
+	def has_piece(self):
 		return self.have
 
-	def hasEntireFile(self):
+	def has_entire_file(self):
 		return self.pieces_i_have
 
 	def send_handshake(self):
