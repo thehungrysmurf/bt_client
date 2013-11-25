@@ -31,10 +31,7 @@ class Bitfield(object):
 	def update_bitfield(self, piece_index):
 		#update the bitfield by changing the bit corresponding to the piece to a 1. This means, add the corresponding power of 2 to the byte containing that bit
 		byte_index = int(math.floor(piece_index / 8.0))
-		print "WE ARE IN THE UPDATE BITFIELD FUNCTION"
-		print "byte index: ", byte_index
-		print "piece_index: ", piece_index
 		self.bitfield[byte_index] += 2**(7 - (piece_index%8))
-		print "value adding to this byte: %r" % (2**(7 - (piece_index%8)))
+		print "Adding %r to this byte... " % (2**(7 - (piece_index%8)))
 			
 		

@@ -1,6 +1,13 @@
 import hashlib
+from glob import iglob
+import shutil
+import os
+import re
+
+PATH = '/home/silvia/Downloads/silvia_bt/'
 
 class Piece(object):
+	
 	def __init__(self, torrent, index, data):
 		self.index = index
 		self.torrent = torrent
@@ -20,12 +27,34 @@ class Piece(object):
 			return False
 
 	def write_to_disk(self):
-		print "WRITING PIECE TO DISK..."
-		self.parent_path = '//home/silvia/Downloads/silvia_bt/'
-		self.piece_file_name = self.parent_path+self.torrent.name+'.'+'00'+str(self.index)
+		print "--------------------------------------------------------WRITING PIECE %r TO DISK" %self.index
+		self.piece_file_name = PATH+self.torrent.name+'.'+'00'+str(self.index)
 		print "piece file name: ", self.piece_file_name
-		piece_file = open(self.piece_file_name, 'w+')
+		piece_file = open(self.piece_file_name, 'w')
 		piece_file.write(self.data)
 		piece_file.close()
+		if self.index == self.torrent.no_of_subpieces-1:
+			self.concatenate_pieces()
+	
+	def sort_numbers(self, value):
+		numbers = re.compile(r'(\d+)')
+		parts = numbers.split(value)
+		parts[1::2] = map(int, parts[1::2])
+		return parts
+
+	def concatenate_pieces(self):
+		print "Concatenating pieces into final file..."
+		self.final_file_name = PATH+self.torrent.name
+		self.destination = open(self.final_file_name, 'wb')
+		# print "Destination: ", self.destination
+		# with open(self.final_file_name, "ab") as myfile:
+		# 	for i in range(self.torrent.no_of_subpieces):
+		# 		print "writing file %r" % (self.torrent.name+".00"+str(i))
+		# 		myfile.write(self.torrent.name+".00"+str(i))
+		# 	myfile.close()
+		for filename in sorted(iglob(os.path.join(PATH, self.torrent.name+".*")), key=self.sort_numbers):
+			shutil.copyfileobj(open(filename, 'rb'), self.destination)
+		self.destination.close()
+		print "---------------------------------------------------------------FINAL FILE SAVED!"
 
 		#self.piece_file = open("")

@@ -1,6 +1,7 @@
 import bencode
 from struct import *
 import files
+import math
 
 class Message(object):
     def __init__(self):
@@ -62,19 +63,22 @@ class BitMessage(Message):
     def assemble(self, torrent):
         self.m_id = 5
         bitfield_to_send = files.Bitfield(torrent).pack_bitfield()
-        message = pack(self.prefix+'15s', 16, self.m_id, bitfield_to_send)
-        #print "Bitfield Assemble: ", unpack("!IB15s", message)
+        print "Length of bitfield payload: ", len(bitfield_to_send)
+        # message = pack(self.prefix+'15s', len(bitfield_to_send)+1, self.m_id, bitfield_to_send)
+        # print "Bitfield Assemble: ", unpack("!IB15s", message)
+        bit_length = int(math.ceil(torrent.no_of_subpieces / 8.0))
+        message = pack(self.prefix+'%ds' % bit_length, bit_length+1, self.m_id, bitfield_to_send)
+        print "Bitfield assembled: ", unpack("!IB%ds" % bit_length, message)
         return message
 
 class Request(Message):
     #fixed length(0013)
     #<len=0013><id=6><index><begin><length>
-    def assemble(self, torrent, piece_index, begin):
+    def assemble(self, torrent, piece_index, begin, block):
         #request very first piece, no offset, block = 2^14
         self.m_id = 6
-        self.block_size = 16384
-        message = pack(self.prefix+"III", 13, 6, piece_index, begin, self.block_size)
-        print "message: %r" % message
+        message = pack(self.prefix+"III", 13, 6, piece_index, begin, block)
+        print "Request message: %r" % message
         return message
 
 class Piece(Message):

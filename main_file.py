@@ -6,12 +6,12 @@ import messages
 from struct import *
 from files import Bitfield
 
-TORRENT_TEST_FILE = '/home/silvia/Hackbright/my_BT_client/misc/torrents/File_1.torrent'
+TORRENT_TEST_FILE = '/home/silvia/Hackbright/my_BT_client/misc/torrents/File_3.torrent'
 
 def main():
 	inputs = []
 	outputs = []
-	print "starting"
+	print "~~~ Starting BitTorrent Client ~~~"
 
 	# Read & Parse Torrent File
 	tfile = Torrent(TORRENT_TEST_FILE)
@@ -22,14 +22,14 @@ def main():
 	tracker.connect(tfile)
 
 	# Setup Client Peer
-	client = Peer({ "ip": "localhost", "port": 1050, "id": "-SG00011234567890123"}, tfile)
+	client = Peer({ "ip": "localhost", "port": 1050, "id": "-SilviaLearnsBT"}, tfile)
 	# When we're ready, we can write this function to have the client listen for other peers to connect to us
 	client.listen()
 
 	print "peers: %r" % tracker.peers
 
 	# Connect to Peer
-	peer = Peer(tracker.peers[2], tfile)
+	peer = Peer(tracker.peers[3], tfile)
 	peer.connect()
 	inputs.append(peer)
 
@@ -38,7 +38,7 @@ def main():
 		
 		ready_to_read, ready_to_write, in_error = select.select(inputs, outputs, [], 3)
 
-		print "select returned"
+		print "...select returned..."
 
 		for peer in ready_to_read:
 			#let the Peer class method handle it - conditions go there
@@ -59,13 +59,13 @@ def main():
 				if piece_to_request >= 0:
 					while peer.hasPiece() < 0 and not peer.requesting:
 						print "--------------BEGINNING OF WHILE LOOP---------------"
-						print "client haspiece: %r" %client.hasPiece()
-						print "client requesting: ", client.requesting
-						print "peer haspiece: ", peer.hasPiece()
-						print "peer requesting: ", peer.requesting
-						print "piece to request: ", piece_to_request
-						peer.send_piece_request(piece_to_request)
-						print "--------------END OF WHILE LOOP---------------"
+						print "Client has a piece: %r" %client.hasPiece()
+						print "Client is requesting: ", client.requesting
+						print "Peer has a piece: ", peer.hasPiece()
+						print "Peer is requesting: ", peer.requesting
+						print "Next piece to request: ", piece_to_request
+						peer.send_piece_request(piece_to_request, peer.torrent.block_size)
+						print "-----------------END OF WHILE LOOP------------------"
 
 				else:
 					print "Peer %s has nothing I need, disconnecting" % peer.id
@@ -73,17 +73,19 @@ def main():
 					peer.socket.close()
 			
 			if peer.have >= 0:
-				print "---------------UPDATING BITFIELD--------------"
-				print "Peer HasPiece: %r" %peer.have
-				print "bitfield before: ", client.bitfield.bitfield
+				print "---------------------------------------------------------------UPDATING BITFIELD"
+				print "I have piece of index %r, let's update my bitfield..." %peer.have
+				print "Bitfield before update: %r" %client.bitfield.bitfield
 				client.bitfield.update_bitfield(peer.have)
-				print "New bitfield: ", client.bitfield.bitfield
+				print "Bitfield after update: %r" %client.bitfield.bitfield
 				peer.have = -1
-				print "---------------FINISHED UPDATING BITFIELD----------------"
+				print "------------------------------------------------------FINISHED UPDATING BITFIELD"
 
-				
+			if peer.complete:
+				print "GROOVY! You successfully downloaded a torrent."
+				inputs.remove(peer)
 						
-	print "done"
+	print "~~~ Done ~~~"
 
 if __name__=="__main__":
 	main()

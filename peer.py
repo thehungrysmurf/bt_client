@@ -24,6 +24,8 @@ class Peer(object):
 		self.downloading = False
 		self.requesting = False
 		self.complete = False
+
+		self.last_piece_index = (self.torrent.no_of_subpieces - 1)
 		
 		#these make up the buffer for incomplete messages:
 		self.message_incomplete = False
@@ -80,6 +82,7 @@ class Peer(object):
 			print "Received all. Message complete. Length of message: ", len(self.incomplete_data)
 			self.react_to_message(self.incomplete_message_id, self.incomplete_data)
 			self.message_incomplete = False
+			print "Message complete! Processing message..."
 			self.incomplete_data = ''
 			self.incomplete_message_id = -1
 			self.data_length = -1
@@ -128,15 +131,13 @@ class Peer(object):
 						payload = self.socket.recv(self.length - 1)
 						actual_length = len(payload)
 
-					print "Message length: ", self.length
-					print "Actual length: ", actual_length
-
 					if (actual_length != self.length-1):
 						print "Received less than length. Sending to <get_entire_block> function..."
 						self.incomplete_data+=payload
 						self.data_length = self.length
 						self.incomplete_message_id = message_id
 						self.message_incomplete = True
+						print "Message incomplete - waiting for entire message..."
 						self.recv_message()
 
 					else:
@@ -196,13 +197,16 @@ class Peer(object):
 
 			if message_id == mlist["piece"]:
 				self.downloading = True
-				print "!!!!!!!!!!!!!!!!!!!!!!! GOT ONE SUBPIECE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+				print "----------------------------------------------------------------GOT ONE SUBPIECE"
 				piece_index = unpack("!I", payload[0:4])[0]
 				piece_begin = unpack("!I", payload[4:8])[0]
 				self.piece_data += payload[8:]
 				print "Piece index: ", piece_index
 				print "Piece begin: ", piece_begin
-				self.check_piece_completeness(piece_index)
+				if piece_index != self.last_piece_index:
+					self.check_piece_completeness(piece_index)
+				else:
+					self.process_last_piece(piece_index)
 
 			if message_id == mlist["cancel"]:
 				print "Got cancel!"
@@ -225,36 +229,51 @@ class Peer(object):
 		return -1
 
 	# Send peer a request for a new piece
-	def send_piece_request(self, piece_index, begin=0):
+	def send_piece_request(self, piece_index, block, begin=0):
 		msg = messages.Request()
-		send = msg.assemble(self.torrent, piece_index, begin)
+		send = msg.assemble(self.torrent, piece_index, begin, block)
 		self.send_next_message(send)
 		self.requesting = True
 
 	def check_piece_completeness(self, piece_index):
 		if len(self.piece_data) < self.torrent.piece_length:
 			print "Piece is incomplete, sending request for another block to begin at %r..." %len(self.piece_data)
-			self.send_piece_request(piece_index, len(self.piece_data))
+			self.send_piece_request(piece_index, self.torrent.block_size, len(self.piece_data))
+
 		else:
 			print "Piece is complete! Length:", len(self.piece_data)
 			self.write_piece(piece_index)	
 			self.downloading = False
 			self.requesting = False	
+
+	def process_last_piece(self, piece_index):
+		self.last_piece_size = self.torrent.total_length % self.torrent.piece_length
+		print "This is the last piece, index %r , size %r" % (piece_index, self.last_piece_size)
+		if len(self.piece_data) < self.last_piece_size:
+			self.last_subpiece_length = self.last_piece_size % self.torrent.block_size
+			self.send_piece_request(piece_index, self.last_subpiece_length, len(self.piece_data))
+
+		else:
+			print "Piece is complete! Length:", len(self.piece_data)
+			self.write_piece(piece_index)	
+			self.downloading = False
+			self.requesting = False
+			self.complete = True	
 			
 	def write_piece(self, piece_index):
 		p = Piece(self.torrent, piece_index, self.piece_data)
 		self.piece_data = ''
 		if p.check_piece_hash:
-			print "HASH MATCHES!"
+			print "Hash matches!"
 			p.write_to_disk()
 			self.have = piece_index
+
 		else:
 			print "Hash doesn't match. Not a valid piece!"
-		print "Requesting next piece..."
 		#self.send_piece_request(self.piece_to_request(self.bitfield))
 			
 	def send_next_message(self, assembled_message):	
-		print "Sending message: %r" %assembled_message
+		print "Sending: %r" %assembled_message
 		self.socket.sendall(assembled_message)
 
 	# This lets the Peer class pretend to be a socket

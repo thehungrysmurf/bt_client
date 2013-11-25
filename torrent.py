@@ -10,7 +10,7 @@ class Torrent(object):
 		self.tracker_url = self.info_dict['announce']
 		self.info_hash = hashlib.sha1(bencode.bencode(self.info_dict['info'])).digest()
 		self.info_hash_readable = hashlib.sha1(bencode.bencode(self.info_dict['info'])).hexdigest()
-		self.peer_id = '-SG00011234567890123'
+		self.peer_id = '-SilviaLearnsBT'
 		if self.info_dict['info'].get('name'):
 			self.name = self.info_dict['info']['name']
 		self.encoding = self.info_dict.get('encoding', None)
@@ -31,6 +31,7 @@ class Torrent(object):
 			self.list_of_subpieces_hashes.append(self.subpieces[i:i+20])
 		self.no_of_subpieces = len(self.list_of_subpieces_hashes)
 		self.bitfield = Bitfield(self)
+		self.block_size = 16384
 
 	def printInfo(self):
 		#print "************Metainfo: ", self.info_dict
