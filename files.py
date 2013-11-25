@@ -1,6 +1,9 @@
 import struct
 import math
 import hashlib
+import piece
+import glob
+import os
 
 class Bitfield(object):
 	def __init__(self, torrent):
@@ -12,8 +15,7 @@ class Bitfield(object):
 		self.torrent = torrent
 		self.no_of_bytes = int(math.ceil(int(torrent.no_of_subpieces) / 8.0))
 		self.bitfield = [0] * self.no_of_bytes
-
-		# Make bitfield_packed a function not an attribute
+		# self.bitfield = self.initialize_bitfield()
 	
 	def set_bitfield_from_payload(self, payload):
 		#print "Setting Bitfield from Payload: %r" % payload
@@ -33,5 +35,24 @@ class Bitfield(object):
 		byte_index = int(math.floor(piece_index / 8.0))
 		self.bitfield[byte_index] += 2**(7 - (piece_index%8))
 		print "Adding %r to this byte... " % (2**(7 - (piece_index%8)))
+
+	def initialize_bitfield(self):
+		# start with all zeroes like it is now
+		# scan current directory (pieces.PATH), get a list of all files starting with torrent.name.00
+		# for loop: take each element in the list, strip beginning "torrent.name.00" and what's left is the piece index that we have
+					# call update_bitfield for each piece index
+		# return bitfield list
+		print "Scanning current directory and initializing bitfield..."
+		os.chdir(piece.PATH)
+		for files in glob.glob(self.torrent.name+".00*"):
+			start = len(self.torrent.name)+3
+			piece_index = int(files[start:])
+			print "Piece index %r in directory: " % piece_index
+			self.update_bitfield(piece_index)
+		print "Done initializing bitfield from directory."
+
+
+
+
 			
 		

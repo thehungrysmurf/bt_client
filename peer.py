@@ -16,7 +16,10 @@ class Peer(object):
 
 		self.handshake = False
 		self.interested = False
+		# self.bitfield = files.Bitfield(self.torrent)
+  #       print "Initializing bitfield for peer %s: %r" % (self.id, self.bitfield.bitfield) 
 		self.bitfield = files.Bitfield(self.torrent)
+		self.bitfield.initialize_bitfield()
 		print "Initializing bitfield for peer %s: %r" % (self.id, self.bitfield.bitfield) 
 
 		#state machine:
@@ -34,9 +37,10 @@ class Peer(object):
 		self.data_length = -1
 		self.piece_data = ''
 		self.have = -1
+		self.pieces_i_have = 0
 
 	def connect(self):
-		print "connecting to a peer..."
+		print "Connecting to a peer..."
 		self.socket.settimeout(120)
 		self.socket.connect((self.ip, self.port))
 		self.send_handshake()
@@ -52,6 +56,9 @@ class Peer(object):
 
 	def hasPiece(self):
 		return self.have
+
+	def hasEntireFile(self):
+		return self.pieces_i_have
 
 	def send_handshake(self):
 		#<pstrlen><pstr><reserved><info_hash><peer_id>
@@ -266,6 +273,7 @@ class Peer(object):
 		if p.check_piece_hash:
 			print "Hash matches!"
 			p.write_to_disk()
+			self.pieces_i_have += 1
 			self.have = piece_index
 
 		else:
