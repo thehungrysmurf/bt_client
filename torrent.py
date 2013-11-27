@@ -10,7 +10,7 @@ class Torrent(object):
 		self.tracker_url = self.info_dict['announce']
 		self.info_hash = hashlib.sha1(bencode.bencode(self.info_dict['info'])).digest()
 		self.info_hash_readable = hashlib.sha1(bencode.bencode(self.info_dict['info'])).hexdigest()
-		self.peer_id = '-SilviaLearnsBT'
+		self.peer_id = '-SilviaLearnsBT00000'
 		if self.info_dict['info'].get('name'):
 			self.name = self.info_dict['info']['name']
 		self.encoding = self.info_dict.get('encoding', None)
