@@ -11,7 +11,7 @@ class Bitfield(object):
 		self.no_of_subpieces = int(torrent.no_of_subpieces)
 		self.have_pieces = 0
 
-		self.complete = False
+		# self.complete = False
 		self.torrent = torrent
 		self.no_of_bytes = int(math.ceil(int(torrent.no_of_subpieces) / 8.0))
 		self.bitfield = [0] * self.no_of_bytes
@@ -24,6 +24,7 @@ class Bitfield(object):
 		#print "Payload unpacked: ", payload_unpacked
 		for i in range(len(payload_unpacked)):
 			self.bitfield[i] = payload_unpacked[i]
+		print "Bitfield just set: %r" %self.bitfield
 
 	def pack_bitfield(self):
 		bitfield_list = [str(i) for i in self.bitfield]
@@ -37,7 +38,7 @@ class Bitfield(object):
 		byte_index = int(math.floor(piece_index / 8.0))
 		self.bitfield[byte_index] += 2**(7 - (piece_index%8))
 		print "Adding %r to this byte... " % (2**(7 - (piece_index%8)))
-		print "BITFIELD AFTER UPDATE: " %self.bitfield
+		print "BITFIELD AFTER UPDATE: %r" %self.bitfield
 
 	def complete_bitfield(self):
 		temp_list = [0] * self.no_of_bytes

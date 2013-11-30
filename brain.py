@@ -13,13 +13,12 @@ class Brain(Peer): # peer??? maybe???
         Peer.__init__(self, peer_dict, torrent)
         self.peers = []
         self.done = False
+        self.piece_dict = { i : None for i in range(self.torrent.no_of_subpieces)}
 
         print "PEERS FROM TRACKER: ", self.tracker.peers
+        print "PIECE DICTIONARY: ", self.piece_dict
 
-    def connect_all(self):
-        print "length of peer list: ", len(self.peers)
-
-    def connect_all(self, n):
+    def add_peers(self):
         appended_peer = -1
         for peer_dict in self.tracker.peers:
             if peer_dict['id'] != self.id:
@@ -27,11 +26,20 @@ class Brain(Peer): # peer??? maybe???
                 self.peers.append(c)
                 appended_peer += 1 
                 print "Length of peer list: ", len(self.peers)
-            print "ONE PEER IN PEER LIST: ", peer_dict['id']
+
+    def connect_all(self, n):
         self.current_peers = random.sample(self.peers, n)
+        print "Current peers: %r" %[i.id for i in self.current_peers]
         for current_peer in self.current_peers:
+            print "Connecting to: %r" %current_peer.id
             current_peer.connect()
-            print "1 CURRENT PEER: ", current_peer.id
+
+    def reconnect_all(self, n):
+        self.current_peers = random.sample(self.peers, n)
+        print "New current peers: %r" %[i.id for i in self.current_peers]
+        for current_peer in self.current_peers:
+            print "Connecting to: %r" %current_peer.id
+            current_peer.refresh_socket_and_connect()
 
     def handle_piece(self, piece):
         if piece.check_piece_hash:
@@ -40,19 +48,27 @@ class Brain(Peer): # peer??? maybe???
             # update the bitfield
             self.bitfield.update_bitfield(piece.index)
             if self.bitfield.bitfield == self.bitfield.complete_bitfield:
-                print "My bitfield %r = complete bitfield %r, putting file together..." %(self.bitfield.bitfield, self.bitfield.comple)
+                print "My bitfield %r = complete bitfield %r, putting file together..." %(self.bitfield.bitfield, self.bitfield.complete_bitfield)
                 piece.concatenate_pieces()
                 self.complete = True
+                print "TORRENT COMPLETE!"
         else:
             print "Hash suxxxx" 
 
-    def run(self):
-        running = True
-        while running:
-            ready_peers, ready_to_write, in_error = select.select(self.current_peers, [], [], 3)
-            print [p.id for p in ready_peers], "ARE READY"
+    def lock_this_piece(self, piece_index, client_id):
+        self.piece_dict[piece_index] = client_id
 
-            print "...select returned..."
+    def unlock_this_piece(self, piece_index):
+        self.piece_dict[piece_index] = None
+
+    def run(self):
+        # running = True
+        # while running:
+        while self.bitfield.bitfield != self.bitfield.complete_bitfield:
+            ready_peers, ready_to_write, in_error = select.select(self.current_peers, [], [], 3)
+            # print [p.id for p in ready_peers], "ARE READY"
+
+            print "...standby..."
 
             for p in ready_peers:
                 print p.id, "IS READY"
@@ -60,14 +76,22 @@ class Brain(Peer): # peer??? maybe???
 
                 """Done with this peer"""
                 if status == False:
-                    print "Nothing left to download from this peer."
-                    self.current_peers.remove(p)
+                    """If the file's done too, kill it"""
+                    if self.complete:
+                        return False
+                    else:
+                        print "Nothing left to download from peer %r." %p.id
+                        self.current_peers.remove(p)
+                        p.disconnect()
+                        print "Current peers: %r" %[i.id for i in self.current_peers]
 
                 if not self.current_peers:
-                    self.connect_all(3)
+                    print "No more current peers, get new ones!"
+                    self.reconnect_all(2)
 
                     if self.complete:
                         print "GROOVY! You successfully downloaded a torrent."
-                        running = False
+                        return False
+                        # running = False
         
         

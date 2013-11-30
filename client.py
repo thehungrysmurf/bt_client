@@ -9,7 +9,7 @@ class Client(Peer):
 
     @property
     def transferring(self):
-        return self.requesting
+        return self.requesting & self.downloading
 
     def run(self):
         next_piece = -1
@@ -18,11 +18,18 @@ class Client(Peer):
             self.socket.close()
             return False
 
+        if self.brain.complete:
+            return False
+
         if self.choked:
             return True
 
         print "Peer %s is unchoked!" % self.id
         print "Peer %s's Bitfield: %r" % (self.id, self.bitfield.bitfield)
+        print "My bitfield: %r" %self.brain.bitfield.bitfield 
+        print "Complete bitfield: %r" %self.brain.bitfield.complete_bitfield
+
+        print "TRANSFERRING? ", self.transferring
 
         if not self.transferring:
             if not self.choked:
@@ -30,11 +37,18 @@ class Client(Peer):
 
                 if next_piece >= 0: # we've been told to get a new piece
                     print "Next piece to request: ", next_piece
-                    self.send_piece_request(next_piece, self.torrent.block_size)
+                    if not self.brain.piece_dict.get(next_piece):
+                        print "^^^^^^^^^^^^^^^^ Piece is unlocked, do your thing ^^^^^^^^^^^^^^^^^"
+                        print "PIECE DICTIONARY: %r" %self.brain.piece_dict
+                        self.brain.lock_this_piece(next_piece, self.id)
+                        self.send_piece_request(next_piece, self.torrent.block_size)
+                    else:
+                        print "//////////////// Piece is locked, get the next one ////////////////"
+                        print "PIECE DICTIONARY: %r" %self.brain.piece_dict
 
                 else:
-                    print "File is complete! No pieces left to download."
-                    self.socket.close()
+                    print "No next piece :-("
+                    # self.socket.close()
                     return False
 
         return True
@@ -42,13 +56,12 @@ class Client(Peer):
     def piece_complete(self, piece_index): # Callback when piece has downloaded
         # send the piece to the brain
         p = Piece(self.torrent, piece_index, self.piece_data)
-        self.brain.handle_piece(p) 
+        self.brain.handle_piece(p)
+        self.brain.unlock_this_piece(piece_index) 
         self.piece_data = ''
 
     def file_complete(self):
         self.brain.complete = True
-
-
 
 # critical section - the locked part of the program where threads need the RLock to enter
 # what's my critical section? Writing? Requesting? The whole Request / Receive process?

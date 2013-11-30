@@ -26,13 +26,13 @@ def main():
         # When we're ready, we can write this function to have the client listen for other peers to connect to us
         #Brain.listen()
 
-        print "peers: %r" % tracker.peers
+        print "Peers: %r" % tracker.peers
 
-        brain.connect_all(3)
+        brain.add_peers()
+        brain.connect_all(2)
         brain.run()
 
-
-        print "~~~ Done ~~~"
+        print "~~~ Entire file has been transferred. Done ~~~"
 
 if __name__=="__main__":
         main()

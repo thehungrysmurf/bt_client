@@ -29,7 +29,7 @@ class Piece(object):
 	def write_to_disk(self):
 		print "--------------------------------------------------------WRITING PIECE %r TO DISK" %self.index
 		self.piece_file_name = PATH+self.torrent.name+'.'+'00'+str(self.index)
-		print "piece file name: ", self.piece_file_name
+		print "Saving piece to file name: ", self.piece_file_name
 		piece_file = open(self.piece_file_name, 'w')
 		piece_file.write(self.data)
 		piece_file.close()

@@ -7,11 +7,11 @@ class Message(object):
     def __init__(self):
         self.prefix = "!IB"    
 
-    def recv(self, socket, length):
-        # Subtrack 1 from length for message_id
-        self.length = length
-        payload = socket.recv(self.length-1)
-        return payload
+    # def recv(self, socket, length):
+    #     # Subtrack 1 from length for message_id
+    #     self.length = length
+    #     payload = socket.recv(self.length-1)
+    #     return payload
 
 class Keepalive(Message):
     #messages of length 0, sent once every 2 min to prevent timeout

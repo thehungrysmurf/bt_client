@@ -43,11 +43,30 @@ class Peer(object):
 
     def connect(self):
             print "Connecting to a peer...", self.id
-            self.socket.settimeout(120)
+            # self.socket.settimeout(120)
+            # print "Connecting to IP: %r" %self.ip
+            # print "Connecting to port: %r" %self.port
             self.socket.connect((self.ip, self.port))
             self.send_handshake()
             self.connecting = True
             print "%r sending handshake..." % self.id
+
+    def disconnect(self):
+        print "Disconnecting ---!"
+        self.socket.close()
+        self.connecting = False
+        self.handshake = False
+
+    def refresh_socket_and_connect(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print "Connecting to a peer from new socket...", self.id
+        # self.socket.settimeout(120)
+        # print "Connecting to IP: %r" %self.ip
+        # print "Connecting to port: %r" %self.port
+        self.socket.connect((self.ip, self.port))
+        self.send_handshake()
+        self.connecting = True
+        print "%r sending handshake..." % self.id
 
     def is_unchoked(self):
             if self.choked == False:
@@ -64,7 +83,7 @@ class Peer(object):
             #<pstrlen><pstr><reserved><info_hash><peer_id>
             pstr = 'BitTorrent protocol'
             handshake = pack("!B19s8x20s20s", len(pstr), pstr, self.torrent.info_hash, self.torrent.peer_id)
-            print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!![%s] sending handshake: %r" % (self.id, handshake)
+            print "[%r] sending handshake... " %self.id
             self.socket.send(handshake)
 
     def recv_handshake(self):
@@ -164,30 +183,31 @@ class Peer(object):
 
                     if message_id == mlist["choke"]:
                             #choke received, what to do? send keepalives as usual and wait for unchoke
-                            print "Got choke!"
+                            print "Got 'Choke' message!"
                             self.choked = True
                             pass
 
                     if message_id == mlist["unchoke"]:
                             #unchoke received, send request
-                            print "Got unchoke!"
+                            print "Got 'Unchoke' message!"
                             self.choked = False
 #                               request = messages.Request()
 #                               piece_index = files.Bitfield(self.torrent).piece_to_request(self.bitfield)
 #                               self.send_next_message(request.assemble(self.torrent, piece_index, 0), self.torrent)
 
                     if message_id == mlist["interested"]:
-                            print "Got interested! "
+                            print "Got 'Interested' message! "
                             #interested received, handle this later because it's for seeding
                             pass
 
                     if message_id == mlist["not interested"]:
-                            print "Got not interested!"
+                            print "Got 'Not Interested' message!"
                             #for you sent the bitfield and the peer doesn't have the pieces you need, so drop the connection
                             self.interested = False
 
                     if message_id == mlist["have"]:
-                            print "Got have!"
+                            print "Got 'Have' message!"
+                            print "Index: ", (unpack("!I", payload))[0]
                             #have received, send interested
                             self.interested = True
                             interested = messages.Interested()
@@ -196,12 +216,15 @@ class Peer(object):
                     if message_id == mlist["bitfield"]:
                             #print "Peer %s received bitfield: %r" % (self.id, payload)
                             #bitfield received, send your own bitfield
+                            print "Got 'Bitfield' message!"
                             self.bitfield.set_bitfield_from_payload(payload)
-
                             # This is temporary code to send a 0 bitfield to the client.  We will
                             #   move this to the state machine in main_file
                             bitfield_message = messages.BitMessage()
                             self.send_next_message(bitfield_message.assemble(self.torrent))
+                            self.interested = True
+                            interested = messages.Interested()
+                            self.send_next_message(interested.assemble())
 
                     if message_id == mlist["piece"]:
                             self.downloading = True
@@ -217,10 +240,10 @@ class Peer(object):
                                     self.process_last_piece(piece_index)
 
                     if message_id == mlist["cancel"]:
-                            print "Got cancel!"
+                            print "Got 'Cancel' message!"
 
                     if message_id == mlist["port"]:
-                            print "Got port!"
+                            print "Got 'Port' message!"
 
                     if message_id == mlist["request"]:
                             #request received and serve the piece requested, but handle this later
@@ -231,9 +254,12 @@ class Peer(object):
             for byte in range(0, len(self.bitfield.bitfield)):
                     for bit in reversed(range(8)):                          
                             if ((int(self.bitfield.bitfield[byte]) >> bit) & 1) == 0:
-                                    if ((int(bitfield_from_peer.bitfield[byte]) >> bit) & 1) == 1:
-                                            return int((8*byte + (7 - bit)))
-            # This peer doesn't have any of the pieces you need.    
+                                if ((int(bitfield_from_peer.bitfield[byte]) >> bit) & 1) == 1:
+                                    return int((8*byte + (7 - bit)))
+                                    print "--- Piece # %r is 0 in my bitfield, 1 in peer's bitfield ---" %int((8*byte + (7 - bit)))
+                                else:
+                                    print "--- Piece # %r is 0 in my bitfield, 0 in peer's bitfield ---" %int((8*byte + (7 - bit)))
+            # This peer doesn't have any of the pieces you need.  
             return -1
 
     # Send peer a request for a new piece
@@ -271,11 +297,10 @@ class Peer(object):
         else:
             print "Piece is complete! Length:", len(self.piece_data)
             self.piece_complete(piece_index)
-            self.file_complete()
+            # self.file_complete()
             #self.write_piece(piece_index)   
             self.downloading = False
-            self.requesting = False
-            self.complete = True    
+            self.requesting = False    
                         
     def write_piece(self, piece_index):
         p = Piece(self.torrent, piece_index, self.piece_data)
