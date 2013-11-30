@@ -4,7 +4,7 @@ import shutil
 import os
 import re
 
-PATH = '/home/silvia/Downloads/silvia_bt/'
+PATH = '/home/s/Downloads/silvia_bt/'
 
 class Piece(object):
 	
@@ -33,8 +33,8 @@ class Piece(object):
 		piece_file = open(self.piece_file_name, 'w')
 		piece_file.write(self.data)
 		piece_file.close()
-		if self.index == self.torrent.no_of_subpieces-1:
-			self.concatenate_pieces()
+		# if self.index == self.torrent.no_of_subpieces-1:
+		# 	self.concatenate_pieces()
 	
 	def sort_numbers(self, value):
 		numbers = re.compile(r'(\d+)')

@@ -15,6 +15,7 @@ class Bitfield(object):
 		self.torrent = torrent
 		self.no_of_bytes = int(math.ceil(int(torrent.no_of_subpieces) / 8.0))
 		self.bitfield = [0] * self.no_of_bytes
+		self.complete_bitfield = self.complete_bitfield()
 		# self.bitfield = self.initialize_bitfield()
 	
 	def set_bitfield_from_payload(self, payload):
@@ -32,9 +33,18 @@ class Bitfield(object):
 
 	def update_bitfield(self, piece_index):
 		#update the bitfield by changing the bit corresponding to the piece to a 1. This means, add the corresponding power of 2 to the byte containing that bit
+		print "BITFIELD BEFORE UPDATE: %r" %self.bitfield
 		byte_index = int(math.floor(piece_index / 8.0))
 		self.bitfield[byte_index] += 2**(7 - (piece_index%8))
 		print "Adding %r to this byte... " % (2**(7 - (piece_index%8)))
+		print "BITFIELD AFTER UPDATE: " %self.bitfield
+
+	def complete_bitfield(self):
+		temp_list = [0] * self.no_of_bytes
+		for i in range(self.torrent.no_of_subpieces):
+			byte_index = int(math.floor(i / 8.0))
+			temp_list[byte_index] += 2**(7 - (i%8))
+		return temp_list
 
 	def initialize_bitfield(self):
 		# start with all zeroes like it is now

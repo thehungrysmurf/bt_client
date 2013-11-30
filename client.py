@@ -1,64 +1,6 @@
 from peer import Peer
 import socket
 from piece import Piece
-import select
-
-class Brain(Peer): # peer??? maybe???
-    def __init__(self, peer_dict, torrent, tracker):
-        self.tracker = tracker
-        self.torrent = torrent
-        #super(Peer, self).__init__(tracker, torrent)
-        Peer.__init__(self, peer_dict, torrent)
-        self.peers = []
-        self.done = False
-
-        print "PEERS FROM TRACKER: ", self.tracker.peers
-
-    def connect_all(self):
-        print "length of peer list: ", len(self.peers)
-
-    def connect_all(self):
-        appended_peer = -1
-        for peer_dict in self.tracker.peers:
-            if peer_dict['id'] != self.id:
-                c = Client(peer_dict, self.torrent, self)
-                self.peers.append(c)
-                appended_peer += 1 
-                print "Length of peer list: ", len(self.peers)
-                self.peers[appended_peer].connect()
-                print "CONNECTING TOOOOOO ", self.peers[appended_peer].id
-
-    def handle_piece(self, piece):
-        if piece.check_piece_hash:
-            piece.write_to_disk()
-            self.pieces_i_have += 1
-
-            # update our bitfield
-            self.bitfield.update_bitfield(piece.index)
-        else:
-            print "Hash suxxxx" 
-
-    def run(self):
-        running = True
-        while running:
-            ready_peers, ready_to_write, in_error = select.select(self.peers, [], [], 3)
-            print [p.id for p in ready_peers], "ARE READY"
-
-            print "...select returned..."
-
-            for p in ready_peers:
-                print p.id, "IS READY"
-                status = p.run()
-
-                """Done with this peer"""
-                if status == False:
-                    self.peers.remove(p)
-
-                    if self.complete:
-                        print "GROOVY! You successfully downloaded a torrent."
-                        running = False
-        
-        
 
 class Client(Peer):
     def __init__(self, peer_dict, torrent, brain):
@@ -105,3 +47,8 @@ class Client(Peer):
 
     def file_complete(self):
         self.brain.complete = True
+
+
+
+# critical section - the locked part of the program where threads need the RLock to enter
+# what's my critical section? Writing? Requesting? The whole Request / Receive process?

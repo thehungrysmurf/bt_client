@@ -1,12 +1,12 @@
 from torrent import Torrent
 from tracker import Tracker
-from client import Brain
+from brain import Brain
 import select
 import messages
 from struct import *
 from files import Bitfield
 
-TORRENT_TEST_FILE = '/home/silvia/Hackbright/my_BT_client/misc/torrents/File_3.torrent'
+TORRENT_TEST_FILE = '/home/s/Hackbright/my_BT_client/misc/torrents/File_4.torrent'
 
 def main():
         inputs = []
@@ -28,7 +28,7 @@ def main():
 
         print "peers: %r" % tracker.peers
 
-        brain.connect_all()
+        brain.connect_all(3)
         brain.run()
 
 
