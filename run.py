@@ -4,9 +4,9 @@ from brain import Brain
 import select
 import messages
 from struct import *
-from files import Bitfield
+from bitfield import Bitfield
 
-TORRENT_TEST_FILE = '/home/s/Hackbright/my_BT_client/misc/torrents/File_4.torrent'
+TORRENT_TEST_FILE = '/home/s/Hackbright/my_BT_client/misc/torrents/File_1.torrent'
 
 def main():
         inputs = []
@@ -29,7 +29,7 @@ def main():
         print "Peers: %r" % tracker.peers
 
         brain.add_peers()
-        brain.connect_all(2)
+        brain.connect_all(3)
         brain.run()
 
         print "~~~ Entire file has been transferred. Done ~~~"

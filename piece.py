@@ -56,5 +56,12 @@ class Piece(object):
 			shutil.copyfileobj(open(filename, 'rb'), self.destination)
 		self.destination.close()
 		print "---------------------------------------------------------------FINAL FILE SAVED!"
+		self.delete_piece_files()
 
-		#self.piece_file = open("")
+	def delete_piece_files(self):
+		print "Removing piece files and cleaning up..."
+		for i in range(self.torrent.no_of_subpieces):
+			piece_src = PATH+self.torrent.name+'.'+'00'+str(i)
+			piece_dest = PATH+"/Pieces/"+self.torrent.name+'.'+'00'+str(i)
+			shutil.move(piece_src, piece_dest)
+			# os.remove(piece_src)

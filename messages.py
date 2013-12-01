@@ -1,6 +1,6 @@
 import bencode
 from struct import *
-import files
+import bitfield
 import math
 
 class Message(object):
@@ -62,7 +62,7 @@ class BitMessage(Message):
 #     #variable length
     def assemble(self, torrent):
         self.m_id = 5
-        bitfield_to_send = files.Bitfield(torrent).pack_bitfield()
+        bitfield_to_send = bitfield.Bitfield(torrent).pack_bitfield()
         print "Length of bitfield payload: ", len(bitfield_to_send)
         # message = pack(self.prefix+'15s', len(bitfield_to_send)+1, self.m_id, bitfield_to_send)
         # print "Bitfield Assemble: ", unpack("!IB15s", message)

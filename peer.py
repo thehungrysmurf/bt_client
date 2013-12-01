@@ -1,7 +1,7 @@
 import socket
 import messages
 from struct import *
-import files
+import bitfield
 from piece import Piece
 import select
 
@@ -17,9 +17,9 @@ class Peer(object):
 
             self.handshake = False
             self.interested = False
-            # self.bitfield = files.Bitfield(self.torrent)
+            # self.bitfield = bitfield.Bitfield(self.torrent)
 #       print "Initializing bitfield for peer %s: %r" % (self.id, self.bitfield.bitfield) 
-            self.bitfield = files.Bitfield(self.torrent)
+            self.bitfield = bitfield.Bitfield(self.torrent)
             self.bitfield.initialize_bitfield()
             print "Initializing bitfield for peer %s: %r" % (self.id, self.bitfield.bitfield) 
 
@@ -89,10 +89,14 @@ class Peer(object):
     def recv_handshake(self):
             print "HANDSHAKING WITH", self.id
             re_handshake = self.socket.recv(68)
-            print "Handshake reply: %r" %re_handshake, len(re_handshake)
-            #verify info_hash
-            reh_unpacked = unpack("!B19s8x20s20s", re_handshake)
-            self.handshake = True
+            if len(re_handshake) < 68:
+                print "Received keepalive"
+                self.recv_handshake()
+            else:
+                print "Handshake reply: %r" %re_handshake, len(re_handshake)
+                #verify info_hash
+                reh_unpacked = unpack("!B19s8x20s20s", re_handshake)
+                self.handshake = True
 
             print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Received handshake from %r: %r" %(self.id, reh_unpacked)
 
@@ -192,7 +196,7 @@ class Peer(object):
                             print "Got 'Unchoke' message!"
                             self.choked = False
 #                               request = messages.Request()
-#                               piece_index = files.Bitfield(self.torrent).piece_to_request(self.bitfield)
+#                               piece_index = bitfield.Bitfield(self.torrent).piece_to_request(self.bitfield)
 #                               self.send_next_message(request.assemble(self.torrent, piece_index, 0), self.torrent)
 
                     if message_id == mlist["interested"]:
@@ -256,9 +260,11 @@ class Peer(object):
                             if ((int(self.bitfield.bitfield[byte]) >> bit) & 1) == 0:
                                 if ((int(bitfield_from_peer.bitfield[byte]) >> bit) & 1) == 1:
                                     return int((8*byte + (7 - bit)))
-                                    print "--- Piece # %r is 0 in my bitfield, 1 in peer's bitfield ---" %int((8*byte + (7 - bit)))
-                                else:
-                                    print "--- Piece # %r is 0 in my bitfield, 0 in peer's bitfield ---" %int((8*byte + (7 - bit)))
+                                    # if int((8*byte + (7 - bit))) < self.torrent.no_of_subpieces:
+                                    #     print "--- Piece # %r is 0 in my bitfield, 1 in peer's bitfield ---" %int((8*byte + (7 - bit)))
+                                # else:
+                                #     if int((8*byte + (7 - bit))) < self.torrent.no_of_subpieces:
+                                #         print "--- Piece # %r is 0 in my bitfield, 0 in peer's bitfield ---" %int((8*byte + (7 - bit)))
             # This peer doesn't have any of the pieces you need.  
             return -1
 

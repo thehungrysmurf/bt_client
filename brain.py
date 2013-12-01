@@ -48,7 +48,7 @@ class Brain(Peer): # peer??? maybe???
             # update the bitfield
             self.bitfield.update_bitfield(piece.index)
             if self.bitfield.bitfield == self.bitfield.complete_bitfield:
-                print "My bitfield %r = complete bitfield %r, putting file together..." %(self.bitfield.bitfield, self.bitfield.complete_bitfield)
+                print "My bitfield %r = complete bitfield %r, looks like we have the whole file!" %(self.bitfield.bitfield, self.bitfield.complete_bitfield)
                 piece.concatenate_pieces()
                 self.complete = True
                 print "TORRENT COMPLETE!"
@@ -60,6 +60,9 @@ class Brain(Peer): # peer??? maybe???
 
     def unlock_this_piece(self, piece_index):
         self.piece_dict[piece_index] = None
+
+    def refresh_piece_dict(self):
+        self.piece_dict = { i : None for i in range(self.torrent.no_of_subpieces)}
 
     def run(self):
         # running = True
@@ -83,11 +86,17 @@ class Brain(Peer): # peer??? maybe???
                         print "Nothing left to download from peer %r." %p.id
                         self.current_peers.remove(p)
                         p.disconnect()
+                        # if I sent a request and it was never honored, remove this peer's ID from the pieces dictionary:
+                        for index, peer in self.piece_dict.iteritems():
+                            if peer == p.id:
+                                self.piece_dict[index] = None
+                                # print "Removed peer's ID from pieces dictionary: %r" %self.piece_dict
                         print "Current peers: %r" %[i.id for i in self.current_peers]
 
                 if not self.current_peers:
                     print "No more current peers, get new ones!"
-                    self.reconnect_all(2)
+                    self.reconnect_all(3)
+                    self.refresh_piece_dict()
 
                     if self.complete:
                         print "GROOVY! You successfully downloaded a torrent."

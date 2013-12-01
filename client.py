@@ -38,13 +38,13 @@ class Client(Peer):
                 if next_piece >= 0: # we've been told to get a new piece
                     print "Next piece to request: ", next_piece
                     if not self.brain.piece_dict.get(next_piece):
-                        print "^^^^^^^^^^^^^^^^ Piece is unlocked, do your thing ^^^^^^^^^^^^^^^^^"
-                        print "PIECE DICTIONARY: %r" %self.brain.piece_dict
+                        print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Piece is UNLOCKED, do your thing."
+                        # print "PIECE DICTIONARY: %r" %self.brain.piece_dict
                         self.brain.lock_this_piece(next_piece, self.id)
                         self.send_piece_request(next_piece, self.torrent.block_size)
                     else:
-                        print "//////////////// Piece is locked, get the next one ////////////////"
-                        print "PIECE DICTIONARY: %r" %self.brain.piece_dict
+                        print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX Piece is LOCKED by %r, get the next one." %self.brain.piece_dict.get(next_piece)
+                        # print "PIECE DICTIONARY: %r" %self.brain.piece_dict
 
                 else:
                     print "No next piece :-("
