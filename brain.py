@@ -86,6 +86,8 @@ class Brain(Peer): # peer??? maybe???
                         print "Nothing left to download from peer %r." %p.id
                         self.current_peers.remove(p)
                         p.disconnect()
+                        for peer in self.current_peers:
+                            peer.send_interested()
                         # if I sent a request and it was never honored, remove this peer's ID from the pieces dictionary:
                         for index, peer in self.piece_dict.iteritems():
                             if peer == p.id:
@@ -93,14 +95,16 @@ class Brain(Peer): # peer??? maybe???
                                 # print "Removed peer's ID from pieces dictionary: %r" %self.piece_dict
                         print "Current peers: %r" %[i.id for i in self.current_peers]
 
-                if not self.current_peers:
-                    print "No more current peers, get new ones!"
-                    self.reconnect_all(3)
-                    self.refresh_piece_dict()
+            if not self.current_peers:
+                print "Out of current peers, get new ones!"
+                # if self.current_peers:
+                #     self.current_peers[0].disconnect()
+                self.reconnect_all(3)
+                self.refresh_piece_dict()
 
-                    if self.complete:
-                        print "GROOVY! You successfully downloaded a torrent."
-                        return False
-                        # running = False
+            if self.complete:
+                print "GROOVY! You successfully downloaded a torrent."
+                return False
+                # running = False
         
         

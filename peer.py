@@ -8,7 +8,6 @@ import select
 
 class Peer(object):
     def __init__(self, peer_dict, torrent):
-            #I will be a Peer instance too when I'm serving a file. We add a listening state
             self.ip = peer_dict['ip']
             self.port = peer_dict['port']
             self.id = peer_dict['id']
@@ -43,13 +42,13 @@ class Peer(object):
 
     def connect(self):
             print "Connecting to a peer...", self.id
-            # self.socket.settimeout(120)
+            self.socket.settimeout(60)
             # print "Connecting to IP: %r" %self.ip
             # print "Connecting to port: %r" %self.port
             self.socket.connect((self.ip, self.port))
             self.send_handshake()
             self.connecting = True
-            print "%r sending handshake..." % self.id
+            print "CONNECT FUNCTION: %r sending handshake..." % self.id
 
     def disconnect(self):
         print "Disconnecting ---!"
@@ -60,13 +59,13 @@ class Peer(object):
     def refresh_socket_and_connect(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         print "Connecting to a peer from new socket...", self.id
-        # self.socket.settimeout(120)
+        self.socket.settimeout(60)
         # print "Connecting to IP: %r" %self.ip
         # print "Connecting to port: %r" %self.port
         self.socket.connect((self.ip, self.port))
         self.send_handshake()
         self.connecting = True
-        print "%r sending handshake..." % self.id
+        print "%r sending handshake after reconnect..." % self.id
 
     def is_unchoked(self):
             if self.choked == False:
@@ -83,22 +82,25 @@ class Peer(object):
             #<pstrlen><pstr><reserved><info_hash><peer_id>
             pstr = 'BitTorrent protocol'
             handshake = pack("!B19s8x20s20s", len(pstr), pstr, self.torrent.info_hash, self.torrent.peer_id)
-            print "[%r] sending handshake... " %self.id
+            print "SEND FUNCTION: [%r] sending handshake... " %self.id
             self.socket.send(handshake)
 
     def recv_handshake(self):
-            print "HANDSHAKING WITH", self.id
+            print "Receiving handshake from: ", self.id
             re_handshake = self.socket.recv(68)
-            if len(re_handshake) < 68:
-                print "Received keepalive"
-                self.recv_handshake()
+            if len(re_handshake) > 68 or len(re_handshake) < 68:
+                print "Expected handshake but received something else: ", re_handshake
+                # self.recv_handshake()
             else:
                 print "Handshake reply: %r" %re_handshake, len(re_handshake)
                 #verify info_hash
                 reh_unpacked = unpack("!B19s8x20s20s", re_handshake)
                 self.handshake = True
+                self.interested = True
+                interested = messages.Interested()
+                self.send_next_message(interested.assemble())
 
-            print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Received handshake from %r: %r" %(self.id, reh_unpacked)
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Received handshake from %r: %r" %(self.id, reh_unpacked)
 
     def get_entire_message(self):
             print "Buffer length before receiving 1 more segment %r" % len(self.incomplete_data)
@@ -321,6 +323,12 @@ class Peer(object):
             print "Hash doesn't match. Not a valid piece!"
     #self.send_piece_request(self.piece_to_request(self.bitfield))
                     
+    def send_interested(self):
+        print "Sending interested... self.id = %r" %self.id
+        self.interested = True
+        interested = messages.Interested()
+        self.send_next_message(interested.assemble())
+
     def send_next_message(self, assembled_message): 
         print "Sending: %r" %assembled_message
         self.socket.sendall(assembled_message)

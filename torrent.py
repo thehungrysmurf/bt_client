@@ -1,6 +1,6 @@
 import bencode
 import hashlib
-from files import Bitfield
+from bitfield import Bitfield
 
 class Torrent(object):
 	def __init__(self, torrent_file):
