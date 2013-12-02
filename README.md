@@ -29,14 +29,14 @@ The BT protocol
 ---------------
 The protocol consists of a series of messages where the peers either describe their state, request pieces or authorize/deauthorize their peers to do something. An overview of the messages and what they mean:
 
-Choked (ID) - "You may not send me requests for pieces" (peer -> client)
-Unchoked (ID)- "You may send me requests for pieces" (peer -> client)
-Interested (ID) - "I'd like to download this file from you" (client -> peer)
-Not Interested (ID) - "I don't want to download anything from you" (client -> peer)
-Bitfield (ID)- describes what pieces each peer has (peer <--> client)
-Have (ID) - "I have piece of index <x>" (peer -> client)
-Request (ID) - "Give me piece of index <x>" (client -> peer)
-Piece (ID) - "Here is piece of index <x>" (peer -> client)
+- Choked (ID) - "You may not send me requests for pieces" (peer -> client)
+- Unchoked (ID)- "You may send me requests for pieces" (peer -> client)
+- Interested (ID) - "I'd like to download this file from you" (client -> peer)
+- Not Interested (ID) - "I don't want to download anything from you" (client -> peer)
+- Bitfield (ID)- describes what pieces each peer has (peer <--> client)
+- Have (ID) - "I have piece of index <x>" (peer -> client)
+- Request (ID) - "Give me piece of index <x>" (client -> peer)
+- Piece (ID) - "Here is piece of index <x>" (peer -> client)
 
 Each message begins with a header specifying the length of the message that follows and an ID. Some (like Piece or Bitfield) also have a payload. The messages arrive via TCP in network format, so they have to be unpacked to be readable. In Python, unpacking such a message requires knowing ahead what the message looks like, because the struct library unpacks it according to the format you feed it. 
 
