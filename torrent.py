@@ -41,8 +41,9 @@ class Torrent(object):
 		"""Displays some info about the file as specified in the torrent"""
 
 		#print "************Complete metainfo: ", self.info_dict
-		print "************Piece length: ", self.piece_length
-		print "************Tracker URL: ", self.tracker_url
-		print "************No. of subpieces: ", self.no_of_subpieces
-		#print "************List of hashes of subpieces: ", self.list_of_subpieces_hashes
-		print "************Info hash: ", self.info_hash.encode('base64')
+		# print "************Piece length: ", self.piece_length
+		# print "************Tracker URL: ", self.tracker_url
+		# print "************No. of subpieces: ", self.no_of_subpieces
+		# #print "************List of hashes of subpieces: ", self.list_of_subpieces_hashes
+		# print "************Info hash: ", self.info_hash.encode('base64')
+		print "We're about to download this file: %r" %self.name

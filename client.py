@@ -16,7 +16,7 @@ class Client(Peer):
     def process_messages(self):
         """Returns true if we still have stuff to do and need to be run again, returns false if we're dead"""
 
-        print "(((((((((((((((((((((((( CLIENT %r IS RUNNING NOW! ))))))))))))))))))))))))" %self.id
+        # print "(((((((((((((((((((((((( CLIENT %r IS RUNNING ))))))))))))))))))))))))" %self.id
         
         if not self.recv_message():
             self.socket.close()
@@ -33,9 +33,9 @@ class Client(Peer):
         if self.choked:
             return True
 
-        print "Peer %s is unchoked!" % self.id
-        print "Peer %s's Bitfield: %r" % (self.id, self.bitfield.bitfield)
-        print "My bitfield: %r" %self.brain.bitfield.bitfield 
+        # print "Peer %s is unchoked!" % self.id
+        # print "Peer %s's Bitfield: %r" % (self.id, self.bitfield.bitfield)
+        # print "My bitfield: %r" %self.brain.bitfield.bitfield 
 
         # Valid piece indices start at 0
         next_piece = -1
@@ -46,16 +46,16 @@ class Client(Peer):
 
                 # Brain told me to get a new piece
                 if next_piece >= 0: 
-                    print "Next piece to request: ", next_piece
+                    # print "Next piece to request: ", next_piece
                     if not self.brain.piece_dict.get(next_piece):
-                        print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Piece is UNLOCKED, do your thing."
+                        # print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Piece is UNLOCKED, do your thing."
                         self.brain.lock_this_piece(next_piece, self.id)
                         self.send_piece_request(next_piece, self.torrent.block_size)
-                    else:
-                        print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX Piece is LOCKED by %r, get the next one." %self.brain.piece_dict.get(next_piece)
+                    # else:
+                    #     print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX Piece is LOCKED by %r, get the next one." %self.brain.piece_dict.get(next_piece)
 
                 else:
-                    print "No next piece :-("
+                    # print "No next piece :-("
                     return False
 
         return True

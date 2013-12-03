@@ -20,6 +20,7 @@ def main(argv):
         inputs = []
         outputs = []
         print "~~~ Starting BitTorrent Client ~~~"
+        print "----------------------------------"
 
         # Read & parse torrent file
         tfile = Torrent(argv[1])
@@ -35,13 +36,17 @@ def main(argv):
         # Setup Brain, the dispatcher
         brain = Brain({ "ip": "localhost", "port": 1050, "id": my_id}, tfile, tracker)
 
-        print "Peers: %r" % tracker.peers
+        if brain.is_complete():
+                print "Aborting. I have the entire file!"
 
-        brain.add_peers()
-        brain.connect_all(3)
-        brain.run()
+        else:
+                print "Received list of peers from tracker: %r" % tracker.peers
 
-        print "~~~ Entire file has been transferred. Done ~~~"
+                brain.add_peers()
+                brain.connect_all(3)
+                brain.run()
+
+                print "~~~ GROOVY! You successfully downloaded a torrent ~~~"
 
 if __name__=="__main__":
         main(sys.argv)

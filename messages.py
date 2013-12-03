@@ -80,7 +80,7 @@ class BitMessage(Message):
         bitfield_to_send = bitfield.Bitfield(torrent).pack_bitfield()
         bit_length = int(math.ceil(torrent.no_of_subpieces / 8.0))
         message = pack(self.prefix+'%ds' % bit_length, bit_length+1, self.m_id, bitfield_to_send)
-        print "Bitfield assembled to send off: ", unpack("!IB%ds" % bit_length, message)
+        # print "Bitfield assembled to send off: ", unpack("!IB%ds" % bit_length, message)
         return message
 
 class Request(Message):
@@ -91,7 +91,7 @@ class Request(Message):
 
         self.m_id = 6
         message = pack(self.prefix+"III", 13, 6, piece_index, begin, block)
-        print "Request message: %r" % message
+        # print "Request message: %r" % message
         return message
 
 class Piece(Message):

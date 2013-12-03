@@ -22,7 +22,7 @@ class Bitfield(object):
 		payload_unpacked = struct.unpack("!%dB" % (len(self.bitfield)), payload)
 		for i in range(len(payload_unpacked)):
 			self.bitfield[i] = payload_unpacked[i]
-		print "Bitfield set from payload: %r" %self.bitfield
+		# print "Bitfield set from payload: %r" %self.bitfield
 
 	def pack_bitfield(self):
 		"""Packs my bitfield to send to a peer"""
@@ -35,11 +35,11 @@ class Bitfield(object):
 	def update_bitfield(self, piece_index):
 		"""Updates the bitfield by changing the bit corresponding to the piece to a 1. This means, add the corresponding power of 2 to the byte containing that bit"""
 
-		print "Bitfield before update: %r" %self.bitfield
+		# print "Bitfield before update: %r" %self.bitfield
 		byte_index = int(math.floor(piece_index / 8.0))
 		self.bitfield[byte_index] += 2**(7 - (piece_index%8))
-		print "Adding %r to this byte... " % (2**(7 - (piece_index%8)))
-		print "Bitfield after update: %r" %self.bitfield
+		# print "Adding %r to this byte... " % (2**(7 - (piece_index%8)))
+		# print "Bitfield after update: %r" %self.bitfield
 
 	def complete_bitfield(self):
 		"""Calculates the complete bitfield"""
@@ -53,17 +53,19 @@ class Bitfield(object):
 	def initialize_bitfield(self):
 		"""Scans current directory and initializes bitfield with any pieces that are in there"""
 
-		print "Scanning current directory, initializing bitfield..."
+		# print "Scanning current directory, initializing bitfield..."
 		if os.path.exists(os.path.join(piece.PATH,self.torrent.name)):
 			self.bitfield = self.complete_bitfield
-			print "I have the entire file."
+			# print "Nothing left to download. I have the entire file."
+			return False
 		else:
 			for files in glob.glob(os.path.join(piece.PATH, self.torrent.name+".00*")):
 				root, ext = os.path.splitext(files)
 				piece_index = int(ext[1:])
-				print "Piece index %r in directory." %piece_index
+				# print "Piece index %r in directory." %piece_index
 				self.update_bitfield(piece_index)
-		print "Done initializing bitfield from directory."
+			return True
+		# print "Done initializing bitfield from directory."
 
 
 

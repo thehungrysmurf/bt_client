@@ -17,7 +17,7 @@ class Brain(Peer):
         # The piece dictionary is to make sure I don't make multiple requests for the same piece to different peers
         self.piece_dict = { i : None for i in range(self.torrent.no_of_subpieces)}
 
-        print "Peers from tracker: ", self.tracker.peers
+        # print "Peers from tracker: ", self.tracker.peers
         # print "Piece dictionary: ", self.piece_dict
 
     def add_peers(self):
@@ -33,9 +33,9 @@ class Brain(Peer):
         """Takes a subset of peers from the Peers list and connects all of them together"""
 
         self.current_peers = random.sample(self.peers, n)
-        print "Current peers: %r" %[i.id for i in self.current_peers]
+        # print "Current peers: %r" %[i.id for i in self.current_peers]
         for current_peer in self.current_peers:
-            print "Connecting to: %r" %current_peer.id
+            # print "Connecting to: %r" %current_peer.id
             current_peer.connect()
 
     def reconnect_all(self, n):
@@ -44,8 +44,14 @@ class Brain(Peer):
         self.current_peers = random.sample(self.peers, n)
         print "New current peers: %r" %[i.id for i in self.current_peers]
         for current_peer in self.current_peers:
-            print "Connecting to: %r" %current_peer.id
+            # print "Connecting to: %r" %current_peer.id
             current_peer.refresh_socket_and_connect()
+
+    def is_complete(self):
+        if self.bitfield.initialize_bitfield():
+            return False
+        else:
+            return True
 
     def handle_piece(self, piece):
         """Verifies the piece that the Client sent over and sends it to be saved"""
@@ -56,10 +62,9 @@ class Brain(Peer):
             # Update the bitfield
             self.bitfield.update_bitfield(piece.index)
             if self.bitfield.bitfield == self.bitfield.complete_bitfield:
-                print "My bitfield %r = complete bitfield %r, looks like we have the whole file!" %(self.bitfield.bitfield, self.bitfield.complete_bitfield)
+                # print "My bitfield %r = complete bitfield %r, looks like we have the whole file!" %(self.bitfield.bitfield, self.bitfield.complete_bitfield)
                 piece.concatenate_pieces()
                 self.complete = True
-                print "TORRENT COMPLETE!"
         else:
             print "Piece hash incorrect! Not a valid piece."
 
@@ -86,10 +91,13 @@ class Brain(Peer):
             # The fileno() function in the Peer class lets the peers pretend to be a socket
             ready_peers, ready_to_write, in_error = select.select(self.current_peers, [], [], 3)
 
-            print "...standby..."
+            # print "...standby..."
+
+            if self.complete:
+                return False
 
             for p in ready_peers:
-                print p.id, "IS READY"
+                # print p.id, "IS READY"
                 status = p.process_messages()
 
             transfer_peers = self.current_peers
@@ -111,14 +119,11 @@ class Brain(Peer):
                         for index, peer in self.piece_dict.iteritems():
                             if peer == p.id:
                                 self.piece_dict[index] = None
-                        print "Current peers: %r" %[i.id for i in self.current_peers]
+                        # print "Current peers: %r" %[i.id for i in self.current_peers]
 
             if not self.current_peers:
                 print "Out of current peers, get new ones!"
                 self.reconnect_all(3)
                 self.refresh_piece_dict()
-
-            if self.complete:
-                print "GROOVY! You successfully downloaded a torrent."
         
         

@@ -28,13 +28,13 @@ class Piece(object):
 	def write_to_disk(self):
 		"""Saves the data to disk"""
 
-		print "--------------------------------------------------------WRITING PIECE %r TO DISK" %self.index
+		# print "--------------------------------------------------------WRITING PIECE %r TO DISK" %self.index
 		try:
 			os.makedirs(PATH)
 		except:
 			pass
 		self.piece_file_name = os.path.join(PATH, self.torrent.name+'.'+'00'+str(self.index))
-		print "Saving piece to file name: ", self.piece_file_name
+		# print "Saving piece to file name: ", self.piece_file_name
 		piece_file = open(self.piece_file_name, 'w')
 		piece_file.write(self.data)
 		piece_file.close()	
@@ -50,13 +50,13 @@ class Piece(object):
 	def concatenate_pieces(self):
 		"Assembles pieces into file"
 
-		print "Concatenating pieces into final file..."
+		# print "Concatenating pieces into final file..."
 		self.final_file_name = os.path.join(PATH, self.torrent.name)
 		self.destination = open(self.final_file_name, 'wb')
 		for filename in sorted(glob.glob(os.path.join(PATH, self.torrent.name+".*")), key=self.sort_numbers):
 			shutil.copyfileobj(open(filename, 'rb'), self.destination)
 		self.destination.close()
-		print "---------------------------------------------------------------FINAL FILE SAVED!"
+		print "File saved!"
 		self.delete_piece_files()
 
 	def delete_piece_files(self):

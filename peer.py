@@ -42,7 +42,7 @@ class Peer(object):
     def connect(self):
         """Opens socket to connect to a peer"""
 
-        print "Connecting to a peer...", self.id
+        # print "Connecting to peer %r" %self.id
         self.socket.settimeout(10)
         try:
             self.socket.connect((self.ip, self.port))
@@ -64,12 +64,12 @@ class Peer(object):
         """Once the socket.close() function is called the socket can't be reused, so we have to create a new one and connect again"""
         
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        print "Connecting to a peer from new socket...", self.id
+        # print "Connecting to a peer from new socket...", self.id
         self.socket.settimeout(60)
         self.socket.connect((self.ip, self.port))
         self.send_handshake()
         self.connecting = True
-        print "%r sending handshake after reconnect..." % self.id
+        # print "%r sending handshake after reconnect..." % self.id
 
     def is_unchoked(self):
         """Checks state of connection - once unchoked, I'm allowed to request pieces"""
@@ -83,26 +83,25 @@ class Peer(object):
 
         pstr = 'BitTorrent protocol'
         handshake = pack("!B19s8x20s20s", len(pstr), pstr, self.torrent.info_hash, self.my_id)
-        print "%r sending handshake..." %self.id
+        print "Initiating handshake with ", self.id
         self.socket.send(handshake)
 
     def recv_handshake(self):
         """Receives and processes peer's handshake reply"""
 
-        print "Receiving handshake from: ", self.id
+        print "<----- Receiving handshake reply from ", self.id
         re_handshake = self.socket.recv(68)
         if len(re_handshake) > 68 or len(re_handshake) < 68:
             print "Expected handshake but received something else: ", re_handshake
             # self.recv_handshake()
         else:
-            print "Handshake reply: %r" %re_handshake, len(re_handshake)
+            # print "Handshake reply: %r" %re_handshake, len(re_handshake)
             # To add: verify info_hash
             reh_unpacked = unpack("!B19s8x20s20s", re_handshake)
             self.handshake = True
             self.interested = True
             interested = messages.Interested()
             self.send_next_message(interested.assemble())
-            print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Received handshake from %r: %r" %(self.id, reh_unpacked)
 
     def get_entire_message(self):
         """Some messages arrive in separate TCP segments. I need a buffer to store the data until it reaches the length specified in the header"""
@@ -119,7 +118,7 @@ class Peer(object):
                 # print "Received all. Message complete. Length of message: ", len(self.incomplete_data)
                 self.react_to_message(self.incomplete_message_id, self.incomplete_data)
                 self.message_incomplete = False
-                print "Message complete! Processing message..."
+                # print "Message complete! Processing message..."
                 self.incomplete_data = ''
                 self.incomplete_message_id = -1
                 self.data_length = -1
@@ -128,7 +127,7 @@ class Peer(object):
         """First stop for receiving messages. Send them to process or keep them in the buffer if they're incomplete"""
 
         if self.handshake:
-                print "Receiving message..."
+                # print "Receiving message..."
 
                 # Process incomplete messages:
                 if self.message_incomplete:
@@ -149,14 +148,14 @@ class Peer(object):
 
                         m = self.socket.recv(1)
                         message_id = int(unpack('!B', m)[0])
-                        print "Received message of length %r and id %r" %(self.length, message_id)
+                        # print "Received message of length %r and id %r" %(self.length, message_id)
                         payload = None
                         if self.length == 1:
                                 self.react_to_message(message_id, payload)
                         if self.length > 1:
                                 #basic messages have length 1, so the payload is whatever exceeds 1 byte (if any)
                                 if message_id == 7:
-                                        print "Length from header: ", self.length                       
+                                        # print "Length from header: ", self.length                       
                                         i = self.socket.recv(4)
                                         index = str(unpack("!I", i)[0])
                                         b = self.socket.recv(4)
@@ -171,12 +170,12 @@ class Peer(object):
                                         actual_length = len(payload)
 
                                 if (actual_length != self.length-1):
-                                        print "Received less than length. Sending to <get_entire_block> function..."
+                                        # print "Received less than length. Sending to <get_entire_block> function..."
                                         self.incomplete_data+=payload
                                         self.data_length = self.length
                                         self.incomplete_message_id = message_id
                                         self.message_incomplete = True
-                                        print "Message incomplete - waiting for entire message..."
+                                        # print "Message incomplete - waiting for entire message..."
                                         self.recv_message()
 
                                 else:
@@ -198,63 +197,62 @@ class Peer(object):
 
         if message_id == mlist["choke"]:
             # Choke received, what to do? Send keepalives as usual and wait for unchoke
-            print "Got 'Choke' message!"
+            print "<----- Got 'Choke' message from peer ", self.id
             self.choked = True
 
         if message_id == mlist["unchoke"]:
             # Unchoke received, ready to send request
-            print "Got 'Unchoke' message!"
+            print "====================== Got 'Unchoke' message from peer %r ======================" %self.id
             self.choked = False
 
         if message_id == mlist["interested"]:
-            print "Got 'Interested' message! "
+            print "<----- Got 'Interested' message from peer ", self.id
             # Interested received, handle this later because it's for seeding
 
         if message_id == mlist["not interested"]:
-            print "Got 'Not Interested' message!"
+            print "<----- Got 'Not Interested' message from peer ", self.id
             # If you sent the bitfield and the peer doesn't have the pieces you need - so drop the connection
             self.interested = False
 
         if message_id == mlist["have"]:
-            print "Got 'Have' message, advertising piese of index %r!" %(unpack("!I", payload))[0]
+            print "====================== Got 'Have' message from peer %r advertising piece of index %r ======================" %(self.id, (unpack("!I", payload))[0])
             # Update bitfield for this peer with advertised piece
             self.bitfield.update_bitfield((unpack("!I", payload))[0])
             # Send Interested message back
             self.interested = True
             interested = messages.Interested()
             self.send_next_message(interested.assemble())
+            print "Sending 'Interested' message to peer %r..." %self.id
 
         if message_id == mlist["bitfield"]: 
-            print "Got 'Bitfield' message!"
+            print "====================== Got 'Bitfield' message from peer %r ======================" % self.id
             self.bitfield.set_bitfield_from_payload(payload)
             # Send your own Bitfield and Interested
             bitfield_message = messages.BitMessage()
             self.send_next_message(bitfield_message.assemble(self.torrent))
-            self.interested = True
-            interested = messages.Interested()
-            self.send_next_message(interested.assemble())
+            print "Sending 'Bitfield' message to peer %r..." %self.id
 
         if message_id == mlist["piece"]:
             self.downloading = True
-            print "----------------------------------------------------------------GOT ONE SUBPIECE"
+            # print "----------------------------------------------------------------Received subpiece"
             piece_index = unpack("!I", payload[0:4])[0]
             piece_begin = unpack("!I", payload[4:8])[0]
             self.piece_data += payload[8:]
-            print "Piece index: ", piece_index
-            print "Piece begin: ", piece_begin
+            # print "Piece index: ", piece_index
+            # print "Piece begin: ", piece_begin
             if piece_index != self.last_piece_index:
                     self.check_piece_completeness(piece_index)
             else:
                     self.process_last_piece(piece_index)
 
         if message_id == mlist["cancel"]:
-            print "Got 'Cancel' message!"
+            print "<----- Got 'Cancel' message!"
 
         if message_id == mlist["port"]:
-            print "Got 'Port' message!"
+            print "<----- Got 'Port' message!"
 
         if message_id == mlist["request"]:
-            print "Got 'Request' message!"
+            print "<----- Got 'Request' message!"
             # Serve the piece requested - work in progress
 
     def piece_to_request(self, bitfield_from_peer):
@@ -273,18 +271,19 @@ class Peer(object):
         msg = messages.Request()
         send = msg.assemble(self.torrent, piece_index, begin, block)
         self.send_next_message(send)
-        print "Sending a piece request for index %r..." %piece_index
+        # if begin == 0:
+            # print "Sending a piece request for index %r to peer %r..." %(piece_index, self.id)
         self.requesting = True
 
     def check_piece_completeness(self, piece_index):
         """Every time I get a piece message I check if I got the entire piece"""
 
         if len(self.piece_data) < self.torrent.piece_length:
-            print "Piece is incomplete, sending request for another block to begin at %r..." %len(self.piece_data)
+            # print "Piece is incomplete, sending request for another block to begin at %r..." %len(self.piece_data)
             self.send_piece_request(piece_index, self.torrent.block_size, len(self.piece_data))
 
         else:
-            print "Piece is complete! Length:", len(self.piece_data)
+            print "<----- Received piece of index %r from peer %s" %(piece_index, self.id)
             self.piece_complete(piece_index)
             self.downloading = False
             self.requesting = False     
@@ -299,43 +298,30 @@ class Peer(object):
         """The last piece is a little different because it's of variable size""" 
 
         self.last_piece_size = self.torrent.total_length % self.torrent.piece_length
-        print "This is the last piece, index %r , size %r" % (piece_index, self.last_piece_size)
+        # print "This is the last piece, index %r , size %r" % (piece_index, self.last_piece_size)
         if len(self.piece_data) < self.last_piece_size:
             self.last_subpiece_length = self.last_piece_size % self.torrent.block_size
             self.send_piece_request(piece_index, self.last_subpiece_length, len(self.piece_data))
 
         else:
-            print "Piece is complete! Length:", len(self.piece_data)
+            # print "Piece is complete! Length:", len(self.piece_data)
             self.piece_complete(piece_index)
             # self.file_complete()
             #self.write_piece(piece_index)   
             self.downloading = False
             self.requesting = False    
-                        
-    def write_piece(self, piece_index):
-        """Now that the piece is complete, process and save it"""
-
-        p = Piece(self.torrent, piece_index, self.piece_data)
-        self.piece_data = ''
-        if p.check_piece_hash:
-            print "Hash matches!"
-            p.write_to_disk()
-            self.pieces_i_have += 1
-            self.have = piece_index
-        else:
-            print "Hash doesn't match. Not a valid piece!"
                     
     def send_keepalive(self):
         """Just for testing right now"""
 
-        print "Sending keepalive to %r" %self.id
+        # print "Sending keepalive to %r" %self.id
         keepalive = messages.Keepalive()
         self.send_next_message(keepalive.assemble())
 
     def send_next_message(self, assembled_message):
         """Sends off assembled message"""
 
-        print "Sending: %r" %assembled_message
+        # print "Sending: %r" %assembled_message
         self.socket.sendall(assembled_message)
 
     def fileno(self):

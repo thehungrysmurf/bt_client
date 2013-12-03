@@ -25,7 +25,7 @@ class Tracker(object):
 			self.port = None 
 
 		self.peers = []
-		print "Tracker has host: %s  port: %s  path: %s" % (self.host, self.port, self.path)
+		print "Connecting to tracker on host: %s  port: %s  path: %s..." % (self.host, self.port, self.path)
 
 	def connect(self, torrent, my_id):
 		"""Connects to tracker"""
@@ -33,5 +33,4 @@ class Tracker(object):
 		payload = {'info_hash': torrent.info_hash, 'peer_id': my_id, 'ip': self.host, 'port': self.port, 'uploaded': 0, 'downloaded': 0, 'left': torrent.total_length, 'event': 'started'}
 		peers_from_tracker = requests.get(torrent.tracker_url, params = payload)
 		self.peers = bencode.bdecode(peers_from_tracker.text)['peers']
-		print "Peers list from tracker: %r" %self.peers
 
