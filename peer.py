@@ -126,7 +126,7 @@ class Peer(object):
 
                     #process incomplete messages:
                     if self.message_incomplete:
-                            self.get_entire_message()
+                        self.get_entire_message()
 
                     else:
                             # First we expect to receive 4 bytes for the message length
@@ -323,11 +323,10 @@ class Peer(object):
             print "Hash doesn't match. Not a valid piece!"
     #self.send_piece_request(self.piece_to_request(self.bitfield))
                     
-    def send_interested(self):
-        print "Sending interested... self.id = %r" %self.id
-        self.interested = True
-        interested = messages.Interested()
-        self.send_next_message(interested.assemble())
+    def send_keepalive(self):
+        print "Sending keepalive to %r" %self.id
+        keepalive = messages.Keepalive()
+        self.send_next_message(keepalive.assemble())
 
     def send_next_message(self, assembled_message): 
         print "Sending: %r" %assembled_message

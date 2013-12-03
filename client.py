@@ -9,13 +9,14 @@ class Client(Peer):
 
     @property
     def transferring(self):
-        return self.requesting & self.downloading
+        return self.requesting
 
     def run(self):
         print "(((((((((((((((((((((((( CLIENT %r IS RUNNING NOW! ))))))))))))))))))))))))" %self.id
         next_piece = -1
         """Returns true if we still have stuff to do and need to be run again, returns false if we're dead"""
-        if not self.recv_message(): # Potentially, a message is a piece
+        
+        if not self.recv_message():
             self.socket.close()
             return False
 

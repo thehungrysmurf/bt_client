@@ -6,7 +6,7 @@ import messages
 from struct import *
 from bitfield import Bitfield
 
-TORRENT_TEST_FILE = '/home/s/Hackbright/my_BT_client/misc/torrents/File_4.torrent'
+TORRENT_TEST_FILE = '/home/s/Hackbright/my_BT_client/misc/torrents/File_6.torrent'
 
 def main():
         inputs = []

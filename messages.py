@@ -19,6 +19,8 @@ class Keepalive(Message):
         self.length  = 0
     def assemble(self):
         self.m_id = None
+        message = pack("!I", 0)
+        return message
 
 class Choke(Message):
     #initial state of any connection

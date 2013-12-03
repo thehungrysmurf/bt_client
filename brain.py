@@ -87,7 +87,7 @@ class Brain(Peer): # peer??? maybe???
                         self.current_peers.remove(p)
                         p.disconnect()
                         for peer in self.current_peers:
-                            peer.send_interested()
+                            peer.send_keepalive()
                         # if I sent a request and it was never honored, remove this peer's ID from the pieces dictionary:
                         for index, peer in self.piece_dict.iteritems():
                             if peer == p.id:
