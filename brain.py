@@ -5,29 +5,33 @@ from piece import Piece
 import select
 import random
 
-class Brain(Peer): # peer??? maybe???
+class Brain(Peer):
+    """A dispatcher with high-level powers that tells Clients what to do and can write to disk"""
+
     def __init__(self, peer_dict, torrent, tracker):
         self.tracker = tracker
         self.torrent = torrent
-        #super(Peer, self).__init__(tracker, torrent)
-        Peer.__init__(self, peer_dict, torrent)
+        Peer.__init__(self, peer_dict, torrent, peer_dict['id'])
         self.peers = []
         self.done = False
+        # The piece dictionary is to make sure I don't make multiple requests for the same piece to different peers
         self.piece_dict = { i : None for i in range(self.torrent.no_of_subpieces)}
 
-        print "PEERS FROM TRACKER: ", self.tracker.peers
-        print "PIECE DICTIONARY: ", self.piece_dict
+        print "Peers from tracker: ", self.tracker.peers
+        # print "Piece dictionary: ", self.piece_dict
 
     def add_peers(self):
+        """Adds all the peers from the tracker to Peers list"""
         appended_peer = -1
         for peer_dict in self.tracker.peers:
-            if peer_dict['id'] != self.id:
+            if peer_dict.get('id') != self.id:
                 c = Client(peer_dict, self.torrent, self)
                 self.peers.append(c)
                 appended_peer += 1 
-                print "Length of peer list: ", len(self.peers)
 
     def connect_all(self, n):
+        """Takes a subset of peers from the Peers list and connects all of them together"""
+
         self.current_peers = random.sample(self.peers, n)
         print "Current peers: %r" %[i.id for i in self.current_peers]
         for current_peer in self.current_peers:
@@ -35,6 +39,8 @@ class Brain(Peer): # peer??? maybe???
             current_peer.connect()
 
     def reconnect_all(self, n):
+        """If all the current peers have been disconnected, connects to new ones from new socket"""
+
         self.current_peers = random.sample(self.peers, n)
         print "New current peers: %r" %[i.id for i in self.current_peers]
         for current_peer in self.current_peers:
@@ -42,10 +48,12 @@ class Brain(Peer): # peer??? maybe???
             current_peer.refresh_socket_and_connect()
 
     def handle_piece(self, piece):
+        """Verifies the piece that the Client sent over and sends it to be saved"""
+
         if piece.check_piece_hash:
             piece.write_to_disk()
             self.pieces_i_have += 1
-            # update the bitfield
+            # Update the bitfield
             self.bitfield.update_bitfield(piece.index)
             if self.bitfield.bitfield == self.bitfield.complete_bitfield:
                 print "My bitfield %r = complete bitfield %r, looks like we have the whole file!" %(self.bitfield.bitfield, self.bitfield.complete_bitfield)
@@ -53,33 +61,44 @@ class Brain(Peer): # peer??? maybe???
                 self.complete = True
                 print "TORRENT COMPLETE!"
         else:
-            print "Hash suxxxx" 
+            print "Piece hash incorrect! Not a valid piece."
 
     def lock_this_piece(self, piece_index, client_id):
+        """Puts the peer's ID as the value of the piece in the dictionary"""
+
         self.piece_dict[piece_index] = client_id
 
     def unlock_this_piece(self, piece_index):
+        """Removes the peer's ID from the dictionary"""
+
         self.piece_dict[piece_index] = None
 
     def refresh_piece_dict(self):
+        """In case any peer's ID got stuck in the dictionary and they never sent me the piece, reset it all"""
+
         self.piece_dict = { i : None for i in range(self.torrent.no_of_subpieces)}
 
     def run(self):
-        # running = True
-        # while running:
+        """Runs the Clients and manages the connections"""
+
         while self.bitfield.bitfield != self.bitfield.complete_bitfield:
+
+            # The fileno() function in the Peer class lets the peers pretend to be a socket
             ready_peers, ready_to_write, in_error = select.select(self.current_peers, [], [], 3)
-            # print [p.id for p in ready_peers], "ARE READY"
 
             print "...standby..."
 
             for p in ready_peers:
                 print p.id, "IS READY"
-                status = p.run()
+                status = p.process_messages()
 
-                """Done with this peer"""
+            transfer_peers = self.current_peers
+            random.shuffle(transfer_peers)
+
+            for p in transfer_peers:
+                status = p.start_transfer()
                 if status == False:
-                    """If the file's done too, kill it"""
+                    #If the file's done, stop
                     if self.complete:
                         return False
                     else:
@@ -88,23 +107,18 @@ class Brain(Peer): # peer??? maybe???
                         p.disconnect()
                         for peer in self.current_peers:
                             peer.send_keepalive()
-                        # if I sent a request and it was never honored, remove this peer's ID from the pieces dictionary:
+                        # If I sent a piece request and it was never honored, remove this peer's ID from the pieces dictionary so the piece can be requested from someone else:
                         for index, peer in self.piece_dict.iteritems():
                             if peer == p.id:
                                 self.piece_dict[index] = None
-                                # print "Removed peer's ID from pieces dictionary: %r" %self.piece_dict
                         print "Current peers: %r" %[i.id for i in self.current_peers]
 
             if not self.current_peers:
                 print "Out of current peers, get new ones!"
-                # if self.current_peers:
-                #     self.current_peers[0].disconnect()
                 self.reconnect_all(3)
                 self.refresh_piece_dict()
 
             if self.complete:
                 print "GROOVY! You successfully downloaded a torrent."
-                return False
-                # running = False
         
         

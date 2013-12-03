@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from torrent import Torrent
 from tracker import Tracker
 from brain import Brain
@@ -5,26 +7,33 @@ import select
 import messages
 from struct import *
 from bitfield import Bitfield
+import random
+import sys
 
-TORRENT_TEST_FILE = '/home/s/Hackbright/my_BT_client/misc/torrents/File_6.torrent'
+# TORRENT_TEST_FILE = '/home/s/Downloads/Musicshake - Irish Fiddle _Celtic_.torrent'
 
-def main():
+def main(argv):
+        if len(argv) != 2:
+                print "Usage: %s <torrent-file>" % argv[0]
+                sys.exit(1)
+
         inputs = []
         outputs = []
         print "~~~ Starting BitTorrent Client ~~~"
 
-        # Read & Parse Torrent File
-        tfile = Torrent(TORRENT_TEST_FILE)
-        tfile.printInfo()
+        # Read & parse torrent file
+        tfile = Torrent(argv[1])
+        tfile.print_info()
 
-        # Setup our Tracker connection
+        #My ID has to be exactly 20 characters but each ID should be random
+        my_id = "-SilviaLearnsBT%05d"%random.randint(0,99999)
+
+        # Setup tracker connection
         tracker = Tracker(tfile.tracker_url)
-        tracker.connect(tfile)
+        tracker.connect(tfile, my_id)
 
-        # Setup Client Peer
-        brain = Brain({ "ip": "localhost", "port": 1050, "id": "-SilviaLearnsBT00000"}, tfile, tracker)
-        # When we're ready, we can write this function to have the client listen for other peers to connect to us
-        #Brain.listen()
+        # Setup Brain, the dispatcher
+        brain = Brain({ "ip": "localhost", "port": 1050, "id": my_id}, tfile, tracker)
 
         print "Peers: %r" % tracker.peers
 
@@ -35,4 +44,4 @@ def main():
         print "~~~ Entire file has been transferred. Done ~~~"
 
 if __name__=="__main__":
-        main()
+        main(sys.argv)
