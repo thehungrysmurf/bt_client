@@ -100,10 +100,7 @@ class Brain(Peer):
                 # print p.id, "IS READY"
                 status = p.process_messages()
 
-            transfer_peers = self.current_peers
-            random.shuffle(transfer_peers)
-
-            for p in transfer_peers:
+            for p in self.current_peers:
                 status = p.start_transfer()
                 if status == False:
                     #If the file's done, stop

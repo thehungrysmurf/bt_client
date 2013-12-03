@@ -3,6 +3,7 @@ import messages
 from struct import *
 import bitfield
 from piece import Piece
+from threading import Thread
 
 class Peer(object):
     "A generic 'peer' - has Brain and Client as children and soon it'll have Server too"""
