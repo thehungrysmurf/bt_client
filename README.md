@@ -1,70 +1,77 @@
 Another BitTorrent Client
 =========================
 
-Some context about BT
+Some context about BitTorrent
 ---------------------
-[ ... ]
+BitTorrent (BT) is a network protocol that supports peer to peer sharing, used particularly to transfer large files between users. The files are downloaded in pieces that come from different users simultaneously, which makes the download faster than if the file were pulled from only one location.
+
+BitTorrent protocols move 40% to 60% of internet traffic every day. In 2009, the most popular torrent clients had more users than Facebook and YouTube combined. So torrents are a substantial presence on the Internet. Even though much of what's downloaded via BT is not ethical to share, the technology itself should not be considered in a negative light. BitTorrent makes transferring more efficient and increases the availability of materials which are meant to be shared. 
 
 What it does
 ------------
-My client opens and parses a torrent file to get information about a file that it intends to download. It then connects to the tracker specified in the torrent file to obtain a list of peers who have parts or all of the file. From this list, it chooses 3 (arbitrary number) peers at random to connect to. The client implements the BitTorrent Protocol to communicate with the peers and negotiate the transfer of the file's pieces. When all the pieces have been received, the original file is reassembled on disk. The application is entirely written in Python.
+My client opens and parses a torrent file to get information about a file that it intends to download. It then connects to the tracker specified in the torrent file to obtain a list of peers who have parts or all of the file. From this list, it chooses 3 peers at random to connect to. The client implements the BitTorrent Protocol to communicate with the peers and negotiate the transfer of the file's pieces. When all the pieces have been received, the original file is reassembled on disk. The application is entirely written in Python.
 
 Parsing the torrent
 -------------------
-A torrent file is a metafile that contains information about the tracker and details that describe the file to be downloaded. This file is encoded ("bencoded") according to the BitTorrent specifications. With the help of the Python bencode library, my client extracts useful information from the torrent:
-1. the URL, port and path of the tracker
-2. file information:
-	- name of the file
-	- total file length
-	- number of pieces
-	- length of each piece
-	- hashes of the pieces (used for verification)
+A torrent file is a metafile that contains information about the tracker and details that describe the file to be downloaded. This file is encoded ("bencoded") according to the BitTorrent specifications. With the help of the Python 'bencode' library, my client extracts useful information from the torrent:
+1. The URL, port and path of the tracker
+2. File information:
+	- Name of the file
+	- Total file length
+	- Number of pieces
+	- Length of each piece
+	- Hashes of the pieces (used for verification)
 
 Connecting to the tracker
 -------------------------
 The connection with the tracker is made via an HTTP GET request. The payload of this request contains the tracker's details, my client ID and details about the file extracted from the torrent. The payload of the tracker's response is a list containing the list of peers.
-ex. [{ }...{ }]
+ex. [{u'ip': u'127.0.0.1', u'id': u'-qB2970-457jdJT4KMSJ', u'port': 6881}, {u'ip': u'127.0.0.1', u'id': u'-KT4130-A5PpFR7ws7zp', u'port': 6890}, {u'ip': u'127.0.0.1', u'id': u'-TR2510-mb2qde0zrch1', u'port': 51413}]
 
 The BT protocol
 ---------------
 The protocol consists of a series of messages where the peers either describe their state, request pieces or authorize/deauthorize their peers to do something. An overview of the messages and what they mean:
 
-- Choked (ID) - "You may not send me requests for pieces" (peer -> client)
-- Unchoked (ID)- "You may send me requests for pieces" (peer -> client)
-- Interested (ID) - "I'd like to download this file from you" (client -> peer)
-- Not Interested (ID) - "I don't want to download anything from you" (client -> peer)
-- Bitfield (ID)- describes what pieces each peer has (peer <--> client)
-- Have (ID) - "I have piece of index <x>" (peer -> client)
-- Request (ID) - "Give me piece of index <x>" (client -> peer)
-- Piece (ID) - "Here is piece of index <x>" (peer -> client)
+- Choked (ID 0) - "You may not send me requests for pieces" (peer -> client)
+- Unchoked (ID 1)- "You may send me requests for pieces" (peer -> client)
+- Interested (ID 2) - "I'd like to download this file from you" (client -> peer)
+- Not Interested (ID 3) - "I don't want to download anything from you" (client -> peer)
+- Have (ID 4) - "I have piece of index <x>" (peer -> client)
+- Bitfield (ID 5)- describes what pieces each peer has (peer <--> client)
+- Request (ID 6) - "Give me piece of index <x>" (client -> peer)
+- Piece (ID 7) - "Here is piece of index <x>" (peer -> client)
 
-Each message begins with a header specifying the length of the message that follows and an ID. Some (like Piece or Bitfield) also have a payload. The messages arrive via TCP in network format, so they have to be unpacked to be readable. In Python, unpacking such a message requires knowing ahead what the message looks like, because the struct library unpacks it according to the format you feed it. 
+Each message begins with a header specifying the length of the message that follows and an ID. Some (like Piece and Bitfield) also have a payload. The messages arrive via TCP in network format, so they have to be unpacked to be readable. In Python, unpacking such a message requires knowing ahead what the message looks like, because the 'struct' library unpacks it according to the format you feed it. 
 
 One of my first notable challenges was formatting valid messages and correctly parsing received messages so I could make meaning from them. Not only is network traffic difficult to grasp because it's encoded and dynamic, but in addition to this each BitTorrent client I talked to has a different personality and might send messages in a different order. The protocol doesn't have clear cut rules for how the messages are to be exchanged - there are only a handful of rules that are imperative (for instance, the handshake must always be first). The rest is entirely unpredictable. 
 
 The Bitfield
 ------------
-The Bitfield message is optional. According to the protocol specifications, if the bitfield is sent at all it must be sent immediately after the handshake. It can be sent either by the client or the peer, and the other end can either send their own bitfield back or not.
+The Bitfield message is optional. According to the protocol specifications, if the Bitfield is sent at all it must be sent immediately after the handshake. It can be sent either by the client or the peer, and the other end can either send their own Bitfield back or not.
 
-In practice though, this message is very useful. Peers have to communicate what pieces they have and don't have in order to locate the pieces they need and request them. The bitfield is an intelligent way of condensing information about posession/absence of many pieces in just a few numbers. When it arrives, a bitfield is a tuple and will look like this: (255, 255, 255, 254). Each number represents the posession/absence of 8 pieces - 1 for each piece the peer has, 0 for pieces they don't have. '255' stands for '11111111', and we arrive at 255 by multiplying each number in the octet by the power of 2 corresponding to that position, from 2^0 to 2^7: 1x2^0 + 1x2^1 + 1x2^3... + 1x2^7 = 255.
+In practice though, this message is very useful. Peers have to communicate what pieces they have and don't have in order to locate the pieces they need and request them. The bitfield is an intelligent way of condensing information about posession/absence of many pieces in just a few numbers. When it arrives, a Bitfield payload is a tuple and will look like this: (255, 255, 255, 254). Each number represents the posession/absence of 8 pieces - 1 for each piece the peer has, 0 for pieces they don't have. 
 
-An interesting task is, given a bitfield that looks like this (255, 255, 255, 254), to determine whether a given piece of index x (e.g. 20) is a 0 or a 1. I do this by shifting the corresponding octet to the right, and then using that output in a binary AND operation with 1 (00000001). 
+ex. '255' stands for '11111111', and we arrive at 255 by multiplying each number in the octet by the power of 2 corresponding to that position, from 2^0 to 2^7: 1 x 2^0 + 1 x 2^1 + 1 x 2^3... + 1 x 2^7 = 255.
 
-The bitfield is also a way for my client to keep track of what pieces it has and which it needs. Whenever it receives a bitfield from a peer, it compares it to its own bitfield and determines which piece to request next. There are many algorithms that you can employ to decide which pieces to request. When I first started sending and receiving messages, I was consistently receiving a Bitfield from the peers immediately after the handshake, regardless of what specific client the peer was using. Although in the official protocol specifications the Bitfield is an optional message, in practice it seems to be the rule. Since it was so obiquitous, and the concept so interesting to work with, I decided to use the Bitfield messages to help me pick a piece to requests. As soon as it receives the Bitfield from a peer, my client compares it to its own bitfield and returns the first piece I need (i.e. is a 0 in my bitfield), if the peer also has it (i.e. is a 1 in peer's bitfield). My client takes all the pieces it can from one client and then moved on to the next peer until the file is complete.
+An interesting task is, given a bitfield that looks like this (255, 255, 255, 254), to determine whether a given piece of index x (ex. 20) is a 0 or a 1. I do this by shifting the corresponding octet to the right, and then using that output in a binary AND operation with 1 (00000001). 
+
+The bitfield is also a way for my client to keep track of what pieces it has and which it needs. When it receives a bitfield from a peer, it compares it to its own bitfield and determines which piece to request next. There are many algorithms that can be used to decide which pieces to request. When I first started sending and receiving messages, I was consistently receiving Bitfields from the peers immediately after the handshake, regardless of what client the peer was using. Even though in the specifications the Bitfield is an optional message, in practice it turns out that most clients send it. 
+
+Since it was so obiquitous, and the concept so interesting to work with, I decided to use the Bitfield messages to help me pick a piece to request. When it receives the Bitfield from a peer, my client compares it to its own bitfield and returns the first piece I need (i.e. is a 0 in my bitfield), if the peer also has it (i.e. is a 1 in peer's bitfield). My client takes all the pieces it can from one client and then moves on to the next peer until the file is complete.
 
 Handling requests
 -----------------
-Once my client joins the swarm network as a peer, the protocol somewhat takes a life of its own and everything happens very quickly, bound only by the conditions I've specified in the message handler and the conditions that the peer's client has in place. I noticed that the same piece was being requested almost simultaneously from multiple peers (before the bitfield was updated to reflect having the piece), so the piece file was being overwritten every time, but even more alarmingly the bitfield was being updated every time, adding up to an astronomical, incorrect figure. To overcome this, my client keeps a dictionary with all the piece indices as keys. When a piece is requested from a peer, the ID of the peer is assigned as the value to the piece index, "locking" the piece. Peers check the dictionary to make sure the piece is not locked before requesting it.
+Once my client joins the swarm network as a peer, the protocol takes a life of its own and everything happens very quickly, bound only by the conditions I've specified in the message handler and the conditions that the peer's client has in place. Running the client with larger files, I noticed that the same piece was being requested from multiple peers and these requests were issued almost simultaneously, before the bitfield had been updated to reflect having the piece. So piece files were being overwritten every time, but even more alarmingly the bitfield was being updated every time, adding up to an astronomical, incorrect figure. To overcome this, my client keeps a dictionary with all the piece indices as keys. When a piece is requested from a peer, the ID of the peer is assigned as the value to the piece index, "locking" the piece. Peers check the dictionary to make sure a piece is not locked before requesting it.
 
 Putting it all together
 -----------------------
-I also use the bitfield to ascertain when the file is complete and when it's time to assemble it and clean up the downloads folder. When the client's bitfield is the same as the complete bitfield for that particular file, the client scans the folder for the piece files and concatenates them into the final file, then deletes the pieces.
+I also use the bitfield to check when the file is complete and it's time to assemble it. When the client's bitfield is the same as the complete bitfield for that particular file, the client scans the downloads folder for the piece files and concatenates (binary write) them into the final file, then deletes the pieces.
 
 Real-life considerations
 ------------------------
-Every client is different. 
-Some clients don't respect the protocol.
+Even though I wrote a client that follows the BitTorrent Protocol, when I was testing my client interacting with other clients I learned that not all clients respect the protocol also. For instance, according to the specifications a peer should only send "Have" messages to advertise pieces that the downloader doesn't already have. My client sends a Bitfield message, so the peers are aware of what pieces I have. Yet the client Deluge constantly sends my client "Have" messages advertising pieces that I already have. Deluge also occasionally does not honor requests for pieces, which is neither the prescribed behavior on a connection that is Unchoked, nor is it fair play.
+
+So perhaps the biggest challenge in this project has been dealing with real-life circumstances. Every client has its idiosyncrasies, and every tracker does too. My local setup involves a QBitTorrent embedded tracker that runs locally, and I used the builtin torrent "wizard" in QBitTorrent to create the torrent metafiles for my files. When I started testing my client with real trackers, the trackers each seemed to encode the peers in a different way. Below are some examples. To create a universal torrent client, one that would work with every tracker and every client, I would need to spend a lot of time testing compatibility with already existing tools, perhaps even more time than I spent developing the client backbone.
 
 Work in progress
 ----------------
-Adding the server feature.
+I'm currently working on adding the Server part to the client. A good BitTorrent client doesn't just download, but also serves files. I have the messaging protocol already in place, so I will only need to add the rules for the message flow when a peer asks for a file. I will also add a Listening socket and create a Server class that responds to connections accordingly, and to build methods that divide the file up in the Pieces class.
