@@ -9,7 +9,8 @@ BitTorrent protocols move 40% to 60% of internet traffic every day. In 2009, the
 
 What my program does
 ------------
-My client opens and parses a torrent file to get information about a file that it intends to download. It then connects to the tracker specified in the torrent file to obtain a list of peers who have parts or all of the file. From this list, it chooses 3 peers at random to connect to. The client implements the BitTorrent Protocol to communicate with the peers and negotiate the transfer of the file's pieces. When all the pieces have been received, the original file is reassembled on disk. The application is entirely written in Python. I used the standard Python modules 'bencode' and 'requests.'
+My client opens and parses a torrent file to get information about a file that it intends to download. It then connects to the tracker specified in the torrent file to obtain a list of peers who have parts or all of the file. From this list, it chooses 3 peers at random to connect to. The client implements the BitTorrent Protocol to communicate with the peers and negotiate the transfer of the file's pieces. When all the pieces have been received, the original file is reassembled on disk. The application is entirely written in Python.
+
 
 Parsing the torrent
 -------------------
@@ -22,9 +23,12 @@ A torrent file is a metafile that contains information about the tracker and det
 	- Length of each piece
 	- Hashes of the pieces (used for verification)
 
+![torrent file](https://raw.github.com/thehungrysmurf/bt_client/master/screenshots/bt_4.png)
+
 Connecting to the tracker
 -------------------------
 The connection with the tracker is made via an HTTP GET request. The payload of this request contains the tracker's details, my client ID and details about the file extracted from the torrent. The payload of the tracker's response is a list containing the list of peers.
+
 ex. [{u'ip': u'127.0.0.1', u'id': u'-qB2970-457jdJT4KMSJ', u'port': 6881}, {u'ip': u'127.0.0.1', u'id': u'-KT4130-A5PpFR7ws7zp', u'port': 6890}, {u'ip': u'127.0.0.1', u'id': u'-TR2510-mb2qde0zrch1', u'port': 51413}]
 
 The BT protocol
@@ -40,7 +44,9 @@ The protocol consists of a series of messages where the peers either communicate
 - Request (ID 6) - "Give me piece of index <x>" (client -> peer)
 - Piece (ID 7) - "Here's piece of index <x>" (peer -> client)
 
-Each message begins with a header specifying the length of the message that follows, and an ID. Some (like "Piece" and "Bitfield") also have a payload. The messages arrive via TCP in network format, so they have to be unpacked to be readable. In Python, unpacking such a message requires knowing ahead what the message looks like, because the 'struct' library unpacks it according to the format you feed it. 
+Each message begins with a header specifying the length of the message that follows, and an ID. Some (like "Piece" and "Bitfield") also have a payload. The messages arrive via TCP in network format, so they have to be unpacked to be readable. In Python, unpacking such a message requires knowing ahead what the message looks like, because the 'struct' library unpacks it according to the format you feed it.
+
+![BT protocol](https://raw.github.com/thehungrysmurf/bt_client/master/screenshots/bt_1.png)
 
 One of the first notable challenges was formatting valid messages and correctly parsing received messages so I could make meaning from them. Not only is network traffic difficult to grasp because it's encoded and dynamic, but in addition to this each BitTorrent client I talked to has a different personality and might send messages in a different order. The protocol doesn't have clear cut rules for how the messages are to be exchanged - there are only a handful of rules that are imperative (for instance, the handshake must always be first). The rest is unpredictable. 
 
@@ -62,11 +68,15 @@ Handling requests
 -----------------
 Once my client joins the swarm network as a peer, the protocol takes a life of its own and everything happens very quickly, bound by the conditions I've specified in the message handler and the conditions that the peer's client has in place. 
 
+![requesting pieces](https://raw.github.com/thehungrysmurf/bt_client/master/screenshots/bt_2.png)
+
 Running the client with larger files, I noticed that the same piece was being requested from multiple peers and these requests were issued almost simultaneously, before the bitfield had been updated to reflect having the piece. So piece files were being overwritten every time, but even more alarmingly the bitfield was being updated every time, adding up to an astronomical, incorrect figure. To overcome this, my client keeps a dictionary with all the piece indices as keys. When a piece is requested from a peer, the ID of the peer is assigned as the value to the piece index, "locking" the piece. Peers check the dictionary to make sure a piece is not locked before requesting it.
 
 Putting it all together
 -----------------------
 I also use the bitfield to check when the file is complete and it's time to assemble it. When the client's bitfield is the same as the complete bitfield for that particular file, the client scans the downloads folder for the piece files and concatenates (binary writes) them into the final file, then deletes the pieces.
+
+![saving pieces](https://raw.github.com/thehungrysmurf/bt_client/master/screenshots/bt_3.png)
 
 Real-life considerations
 ------------------------
