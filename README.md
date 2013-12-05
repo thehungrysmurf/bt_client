@@ -3,9 +3,9 @@ A BitTorrent Client
 
 Some context about BitTorrent
 ---------------------
-BitTorrent (BT) is a network protocol that supports peer to peer sharing, used particularly to transfer large files between users. The files are downloaded in pieces that come from different users simultaneously, which makes the download faster than if the file were pulled from only one location.
+BitTorrent (BT) is a network protocol that supports peer to peer (P2P) sharing, used particularly to transfer large files between users. The files are downloaded in pieces that come from different users simultaneously, which makes the download faster than if the file were pulled from only one location.
 
-BitTorrent protocols move 40% to 60% of internet traffic every day. In 2009, the most popular torrent clients had more users than Facebook and YouTube combined. So torrents are a substantial presence on the Internet. Even though much of what's downloaded via BT is not ethical to share, the technology itself should not be considered in a negative light. BitTorrent makes transferring more efficient and increases the availability of materials which are meant to be shared. 
+BitTorrent protocols move 40% to 60% of internet traffic every day. It's estimated that BitTorrent has more users than Facebook and YouTube combined. So torrents are a substantial presence on the Internet. Even though part of what is downloaded via BT is not ethical to share, the technology itself should not be considered in a negative light. BitTorrent makes transferring more efficient and increases the availability of materials which are meant to be shared. 
 
 What my program does
 ------------
