@@ -1,4 +1,4 @@
-Another BitTorrent Client
+A BitTorrent Client
 =========================
 
 Some context about BitTorrent
