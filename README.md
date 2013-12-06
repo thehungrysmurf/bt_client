@@ -15,13 +15,14 @@ My client opens and parses a torrent file to get information about a file that i
 Parsing the torrent
 -------------------
 A torrent file is a metafile that contains information about the tracker and details that describe the file to be downloaded. This file is encoded ("bencoded") according to the BitTorrent specifications. From the torrent, my client extracts useful information:
+
 1. The URL, port and path of the tracker
 2. File information:
-	- Name of the file
-	- Total file length
-	- Number of pieces
-	- Length of each piece
-	- Hashes of the pieces (used for verification)
+	* Name of the file
+	* Total file length
+	* Number of pieces
+	* Length of each piece
+	* Hashes of the pieces (used for verification)
 
 ![torrent file](https://raw.github.com/thehungrysmurf/bt_client/master/screenshots/bt_4.png)
 
