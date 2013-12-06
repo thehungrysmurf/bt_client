@@ -62,7 +62,7 @@ An interesting task is, given a bitfield that looks like this (255, 255, 255, 25
 
 The bitfield is also a way for my client to keep track of what pieces it has and which it needs. When it receives a bitfield from a peer, it compares it to its own bitfield and determines which piece to request next. There are many algorithms that can be used to decide which pieces to request. When I first started sending and receiving messages, I was consistently receiving Bitfields from the peers immediately after the handshake, regardless of what client the peer was using. Even though in the specifications the Bitfield is an optional message, in practice it turns out that most clients send it. 
 
-Since it was so obiquitous, and the concept so interesting to work with, I decided to use the Bitfield messages to help me pick a piece to request. When it receives the Bitfield from a peer, my client compares it to its own bitfield and returns the very first piece I need (i.e. is a 0 in my bitfield) AND that the peer also has (i.e. is a 1 in peer's bitfield). My client takes all the pieces it can from one peer and then moves on to the next peer until the file is complete.
+Since it was so ubiquitous, and the concept so interesting to work with, I decided to use the Bitfield messages to help me pick a piece to request. When it receives the Bitfield from a peer, my client compares it to its own bitfield and returns the very first piece I need (i.e. is a 0 in my bitfield) AND that the peer also has (i.e. is a 1 in peer's bitfield). My client takes all the pieces it can from one peer and then moves on to the next peer until the file is complete.
 
 Handling requests
 -----------------
